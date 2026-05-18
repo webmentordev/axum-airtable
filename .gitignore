@@ -1,0 +1,6 @@
+/target
+/Cargo.lock
+/db_axum_at
+.env
+/uploads
+/logs*
