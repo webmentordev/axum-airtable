@@ -9,9 +9,10 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use dotenvy::dotenv;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
-use std::net::SocketAddr;
+use std::{env, net::SocketAddr};
 use tokio::net::TcpListener;
 
 #[derive(Serialize)]
@@ -27,6 +28,12 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
+    dotenv().unwrap();
+    let token = env::var("JWT_SECRET").expect("JWT_SECRET not found!");
+    if token.len() < 30 {
+        panic!("JWT_TOKEN must be 30 characters long.");
+    }
+
     let state_data = database::setup_database().await;
     let state = AppState {
         pool: state_data.0,
@@ -41,7 +48,7 @@ async fn main() {
             "/record/{id}",
             get(get_record).delete(delete_record).patch(update_record),
         );
-    let app_routes = Router::new().route("/records", get(app_records));
+    let app_routes = Router::new().route("/records/{workspace}", get(app_records));
     let auth_routes = Router::new()
         .route("/login", post(login_handler))
         .route("/signup", post(signup_handler))

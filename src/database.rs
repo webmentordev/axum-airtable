@@ -1,10 +1,8 @@
-use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 use std::{env, time::Duration};
 
 pub async fn setup_database() -> (Pool<Postgres>, u32) {
-    dotenv().unwrap();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not found!");
     let max_connections = env::var("MAX_CONNECTIONS")
         .expect("MAX_CONNECTIONS not found!")
@@ -37,10 +35,11 @@ pub async fn setup_database() -> (Pool<Postgres>, u32) {
             username VARCHAR(255) NOT NULL UNIQUE,
             email VARCHAR(255) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
-            is_admin BOOLEAN DEFAULT true,
+            is_admin BOOLEAN DEFAULT false,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )",
+        )
+        ",
     )
     .execute(&mut *tx)
     .await
