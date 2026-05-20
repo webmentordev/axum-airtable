@@ -11,12 +11,12 @@ use chrono::Utc;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::prelude::FromRow;
+use sqlx::{FromRow, Row};
 use std::env;
 
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
-    sub: String,
+    sub: i32,
     exp: usize,
 }
 
@@ -35,24 +35,24 @@ pub struct Register {
     confirm_password: String,
 }
 
-pub struct AuthUser(pub String);
+pub struct AuthUser(pub i32);
 
 impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
 {
-    type Rejection = String;
+    type Rejection = StatusCode;
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let token = parts
             .headers
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.strip_prefix("Bearer "))
-            .ok_or("Missing token")?;
+            .ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
         let secret = env::var("JWT_SECRET").unwrap();
         let key = DecodingKey::from_secret(secret.as_bytes());
-        let claims =
-            decode::<Claims>(token, &key, &Validation::default()).map_err(|_| "Invalid token")?;
+        let claims = decode::<Claims>(token, &key, &Validation::default())
+            .map_err(|_| StatusCode::UNAUTHORIZED)?;
         Ok(AuthUser(claims.claims.sub))
     }
 }
@@ -90,12 +90,12 @@ pub async fn login_handler(
         }
     };
 
-    let row = match sqlx::query_as::<_, Login>("SELECT email, password FROM users WHERE email = $1")
+    let row = match sqlx::query("SELECT id, password FROM users WHERE email = $1")
         .bind(&email)
         .fetch_one(&state.pool)
         .await
     {
-        Ok(user) => user,
+        Ok(row) => row,
         Err(_) => {
             return (
                 StatusCode::BAD_REQUEST,
@@ -106,7 +106,10 @@ pub async fn login_handler(
         }
     };
 
-    let is_valid = verify(&password, &row.password).unwrap_or(false);
+    let id: i32 = row.get("id");
+    let hashed_password = row.get("password");
+
+    let is_valid = verify(&password, hashed_password).unwrap_or(false);
     if !is_valid {
         return (
             StatusCode::BAD_REQUEST,
@@ -118,7 +121,7 @@ pub async fn login_handler(
 
     let key = EncodingKey::from_secret(secret.as_bytes());
     let claims = Claims {
-        sub: email,
+        sub: id,
         exp: (Utc::now().timestamp() * 3600) as usize,
     };
     match encode(&Header::default(), &claims, &key) {
@@ -153,9 +156,10 @@ pub async fn signup_handler(
     }): Json<Register>,
 ) -> impl IntoResponse {
     let password = password.trim();
+    let username = username.trim();
     if name.trim().is_empty()
         || email.trim().is_empty()
-        || username.trim().is_empty()
+        || username.is_empty()
         || password.is_empty()
         || confirm_password.trim().is_empty()
     {
@@ -191,6 +195,15 @@ pub async fn signup_handler(
         );
     }
 
+    if let Err(err) = validate_username(username) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": err
+            })),
+        );
+    }
+
     if sqlx::query_scalar::<_, String>("SELECT email FROM users WHERE email = $1 OR username = $2")
         .bind(&email)
         .bind(&username)
@@ -217,28 +230,27 @@ pub async fn signup_handler(
         }
     };
 
-    if sqlx::query("INSERT into users (name, username, email, password) VALUES ($1, $2, $3, $4)")
+    match sqlx::query("INSERT into users (name, username, email, password) VALUES ($1, $2, $3, $4)")
         .bind(&name)
         .bind(&username)
         .bind(&email)
         .bind(&hashed_password)
         .execute(&state.pool)
         .await
-        .is_ok()
     {
-        return (
+        Ok(_) => (
             StatusCode::CREATED,
             Json(json!({
                 "message": "Account has been created!"
             })),
-        );
+        ),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Internal server error!"
+            })),
+        ),
     }
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "message": "Internal server error!"
-        })),
-    )
 }
 
 pub async fn logout_handler() -> impl IntoResponse {
@@ -248,4 +260,25 @@ pub async fn logout_handler() -> impl IntoResponse {
             "message": "Logged out successfully!"
         })),
     );
+}
+
+fn validate_username(username: &str) -> Result<(), String> {
+    if username.is_empty() {
+        return Err("Username cannot be empty".to_string());
+    }
+    if username.chars().next().unwrap().is_numeric() {
+        return Err("Username cannot start with a number".to_string());
+    }
+    for ch in username.chars() {
+        if ch.is_uppercase() {
+            return Err("Username cannot contain uppercase letters".to_string());
+        }
+        if ch == ' ' {
+            return Err("Username cannot contain spaces".to_string());
+        }
+        if !ch.is_alphanumeric() && ch != '_' && ch != '-' {
+            return Err(format!("Username contains invalid character: '{}'", ch));
+        }
+    }
+    Ok(())
 }

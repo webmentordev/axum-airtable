@@ -1,0 +1,2 @@
+* Find a better way to handle Authentication token validation (JWT are stateless so we can not invalidate them)
+* Use argon2 for password validation, bcrypt is slow with DEFAULT_COST (1.5sec) which is slow underload

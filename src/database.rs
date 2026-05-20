@@ -2,7 +2,13 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 use std::{env, time::Duration};
 
-pub async fn setup_database() -> (Pool<Postgres>, u32) {
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: Pool<Postgres>,
+    pub record_limit: usize,
+}
+
+pub async fn setup_database() -> AppState {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not found!");
     let max_connections = env::var("MAX_CONNECTIONS")
         .expect("MAX_CONNECTIONS not found!")
@@ -15,7 +21,7 @@ pub async fn setup_database() -> (Pool<Postgres>, u32) {
 
     let records_per_page = env::var("RECORDS_PER_PAGE")
         .expect("RECORDS_PER_PAGE not found!")
-        .parse::<u32>()
+        .parse::<usize>()
         .unwrap_or(100);
 
     let pool = PgPoolOptions::new()
@@ -51,6 +57,20 @@ pub async fn setup_database() -> (Pool<Postgres>, u32) {
             owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             unique_id VARCHAR(255) NOT NULL UNIQUE,
             title TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        " CREATE TABLE IF NOT EXISTS tokens(
+            id SERIAL PRIMARY KEY,
+            owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            app_id INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+            token TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )",
@@ -144,6 +164,15 @@ pub async fn setup_database() -> (Pool<Postgres>, u32) {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(row_id, field_id)
         );
+    ",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_value ON tokens(token);
     ",
     )
     .execute(&mut *tx)
@@ -251,5 +280,9 @@ pub async fn setup_database() -> (Pool<Postgres>, u32) {
     .unwrap();
 
     tx.commit().await.unwrap();
-    (pool, records_per_page)
+
+    AppState {
+        pool: pool,
+        record_limit: records_per_page,
+    }
 }
