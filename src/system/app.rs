@@ -46,26 +46,62 @@ pub async fn create_app(
     State(state): State<AppState>,
     Json(body): Json<AppRecord>,
 ) -> impl IntoResponse {
-    match sqlx::query("INSERT into apps (owner_id, unique_id, title) VALUES ($1, $2, $3)")
-        .bind(&user_id)
-        .bind(generate_id("app"))
-        .bind(&body.title)
-        .execute(&state.pool)
+    let mut tx = match state.pool.begin().await {
+        Ok(tx) => tx,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
+    let app_id = match sqlx::query_scalar::<_, String>(
+        "INSERT INTO apps (owner_id, unique_id, title) VALUES ($1, $2, $3) RETURNING unique_id",
+    )
+    .bind(user_id)
+    .bind(generate_id("app"))
+    .bind(&body.title)
+    .fetch_one(&mut *tx)
+    .await
+    {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
+    if let Err(_) = sqlx::query("INSERT INTO members (member_id, app_id) VALUES ($1, $2)")
+        .bind(user_id)
+        .bind(app_id)
+        .execute(&mut *tx)
         .await
     {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({
-                "message": format!("App has been created!")
-            })),
-        ),
-        Err(_) => (
+        return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({
-                "message": "Failed to create the new app"
+                "message": "Failed to create member"
             })),
-        ),
+        );
     }
+
+    if let Err(_) = tx.commit().await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Failed to commit transaction"
+            })),
+        );
+    }
+    (
+        StatusCode::CREATED,
+        Json(json!({
+            "message": "App has been created!"
+        })),
+    )
 }
 
 pub async fn get_app(

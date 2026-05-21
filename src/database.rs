@@ -66,10 +66,24 @@ pub async fn setup_database() -> AppState {
     .unwrap();
 
     sqlx::query(
+        " CREATE TABLE IF NOT EXISTS members(
+            id SERIAL PRIMARY KEY,
+            member_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            app_id VARCHAR(255) NOT NULL REFERENCES apps(unique_id) ON DELETE CASCADE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    sqlx::query(
         " CREATE TABLE IF NOT EXISTS tokens(
             id SERIAL PRIMARY KEY,
             owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            app_id INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+            app_id VARCHAR(255) NOT NULL REFERENCES apps(unique_id) ON DELETE CASCADE,
+            unique_id VARCHAR(255) NOT NULL UNIQUE,
             token TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -172,7 +186,7 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_value ON tokens(token);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_id ON tokens(unique_id);
     ",
     )
     .execute(&mut *tx)
@@ -191,8 +205,8 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-    CREATE INDEX IF NOT EXISTS idx_workspaces_app_id
-    ON workspaces(app_id);
+        CREATE INDEX IF NOT EXISTS idx_member_app_id
+        ON members(app_id);
     ",
     )
     .execute(&mut *tx)
@@ -201,8 +215,28 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-    CREATE INDEX IF NOT EXISTS idx_tables_workspace_id
-    ON tables(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_member_user_id
+        ON members(member_id);
+    ",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "
+        CREATE INDEX IF NOT EXISTS idx_workspaces_app_id
+        ON workspaces(app_id);
+    ",
+    )
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "
+        CREATE INDEX IF NOT EXISTS idx_tables_workspace_id
+        ON tables(workspace_id);
     ",
     )
     .execute(&mut *tx)

@@ -8,6 +8,7 @@ use apis::routes::*;
 use auth::*;
 use database::*;
 use system::app::*;
+use system::token::*;
 use system::workspace::*;
 
 use axum::{
@@ -57,10 +58,15 @@ async fn main() {
                 .patch(update_workspace)
                 .delete(delete_workspace),
         );
+    let token_routes = Router::new().route(
+        "/{app_id}",
+        get(get_tokens).post(create_token).delete(delete_token),
+    );
 
     let system_routes = Router::new()
         .nest("/apps", app_routes)
-        .nest("/workspaces", workspace_rotues);
+        .nest("/workspaces", workspace_rotues)
+        .nest("/tokens", token_routes);
 
     let auth_routes = Router::new()
         .route("/login", post(login_handler))

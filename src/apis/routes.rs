@@ -1,5 +1,4 @@
 use crate::Response;
-use crate::utils::*;
 use axum::{Json, extract::Path};
 
 pub async fn get_records(Path((app, workspace)): Path<(String, String)>) -> Json<Response> {
