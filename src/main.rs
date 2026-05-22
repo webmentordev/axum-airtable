@@ -13,7 +13,7 @@ use system::workspace::*;
 
 use axum::{
     Json, Router,
-    routing::{get, post},
+    routing::{get, patch, post},
 };
 use dotenvy::dotenv;
 use serde::Serialize;
@@ -51,12 +51,10 @@ async fn main() {
             get(get_app).patch(update_app).delete(delete_app),
         );
     let workspace_rotues = Router::new()
-        .route("/", get(get_workspaces).post(create_workspace))
+        .route("/{app_uid}", get(get_workspaces).post(create_workspace))
         .route(
-            "/workspace/{uid}",
-            get(get_workspace)
-                .patch(update_workspace)
-                .delete(delete_workspace),
+            "/{app_uid}/{workspace_uid}",
+            patch(update_workspace).delete(delete_workspace),
         );
     let token_routes = Router::new().route(
         "/{app_id}",

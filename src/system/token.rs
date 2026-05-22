@@ -8,14 +8,34 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-#[derive(Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Serialize, Deserialize)]
 pub struct TokenRecord {
     pub unique_id: String,
-    pub app_id: Option<String>,
     pub token: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct TokenResponse {
+    pub unique_id: String,
+    pub token: String,
+    pub created_at: NaiveDateTime,
+}
+
+impl TokenResponse {
+    pub fn mask_token(token: &str) -> String {
+        let rest = &token[0..];
+        let start = &rest[..6];
+        let end = &rest[rest.len() - 5..];
+        format!("{}********{}", start, end)
+    }
+    pub fn with_masked_token(mut self) -> Self {
+        self.token = Self::mask_token(&self.token);
+        self
+    }
 }
 
 pub async fn get_tokens(
@@ -38,8 +58,8 @@ pub async fn get_tokens(
         );
     }
 
-    match sqlx::query_as::<_, TokenRecord>(
-        "SELECT app_id, unique_id, token FROM tokens WHERE app_id = $1",
+    match sqlx::query_as::<_, TokenResponse>(
+        "SELECT unique_id, token, created_at FROM tokens WHERE app_id = $1",
     )
     .bind(&app_id)
     .fetch_all(&state.pool)
@@ -49,7 +69,7 @@ pub async fn get_tokens(
             StatusCode::OK,
             Json(json!({
                 "message": "Tokens have been fetched!",
-                "data": records
+                "data": records.into_iter().map(|r| r.with_masked_token()).collect::<Vec<_>>()
             })),
         ),
         Err(_) => (
@@ -104,7 +124,6 @@ pub async fn create_token(
         Json(json!({
             "message": "Token has been created!",
             "data": TokenRecord{
-                app_id: Some(app_id),
                 unique_id: unique_id,
                 token: Some(token)
             }
@@ -131,8 +150,9 @@ pub async fn delete_token(
             })),
         );
     }
-    match sqlx::query("DELETE FROM tokens WHERE unique_id = $1")
+    match sqlx::query("DELETE FROM tokens WHERE unique_id = $1 AND app_id = $2")
         .bind(&payload.unique_id)
+        .bind(&app_id)
         .execute(&state.pool)
         .await
     {

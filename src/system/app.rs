@@ -139,12 +139,15 @@ pub async fn update_app(
     Path(uid): Path<String>,
     Json(payload): Json<AppRecord>,
 ) -> impl IntoResponse {
-    match sqlx::query("UPDATE apps SET title = $1 WHERE unique_id = $2 AND owner_id = $3")
-        .bind(&payload.title)
-        .bind(&uid)
-        .bind(&user_id)
-        .execute(&state.pool)
-        .await
+    match sqlx::query(
+        "UPDATE apps SET title = $1, updated_at = $2 WHERE unique_id = $3 AND owner_id = $4",
+    )
+    .bind(&payload.title)
+    .bind(chrono::Utc::now().naive_utc())
+    .bind(&uid)
+    .bind(&user_id)
+    .execute(&state.pool)
+    .await
     {
         Ok(result) if result.rows_affected() > 0 => (
             StatusCode::OK,
@@ -180,7 +183,7 @@ pub async fn delete_app(
         ),
         Ok(_) => (
             StatusCode::UNAUTHORIZED,
-            Json(json!({ "message": "App not found!" })),
+            Json(json!({ "message": "Only owner can delete the app" })),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

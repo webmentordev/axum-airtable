@@ -97,7 +97,7 @@ pub async fn setup_database() -> AppState {
         "
         CREATE TABLE IF NOT EXISTS workspaces(
             id SERIAL PRIMARY KEY,
-            app_id INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+            app_id VARCHAR(255) NOT NULL REFERENCES apps(unique_id) ON DELETE CASCADE,
             unique_id VARCHAR(255) NOT NULL UNIQUE,
             title TEXT NOT NULL,
             position INTEGER DEFAULT 0,
@@ -225,8 +225,8 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-        CREATE INDEX IF NOT EXISTS idx_workspaces_app_id
-        ON workspaces(app_id);
+        CREATE INDEX IF NOT EXISTS idx_workspaces_id
+        ON workspaces(unique_id);
     ",
     )
     .execute(&mut *tx)
