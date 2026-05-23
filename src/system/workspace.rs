@@ -85,6 +85,7 @@ pub async fn create_workspace(
             })),
         );
     }
+
     if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
@@ -99,31 +100,76 @@ pub async fn create_workspace(
         );
     }
 
-    let unique_id = generate_id("wrk");
-    if let Err(err) =
-        sqlx::query("INSERT INTO workspaces (unique_id, app_id, title) VALUES ($1, $2, $3)")
-            .bind(&unique_id)
-            .bind(&app_uid)
-            .bind(&payload.title)
-            .execute(&state.pool)
-            .await
+    let mut tx = match state.pool.begin().await {
+        Ok(tx) => tx,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Failed to start transaction"
+                })),
+            );
+        }
+    };
+
+    let workspace_uid = generate_id("wrk_");
+
+    let workspace = match sqlx::query_scalar::<_, i32>(
+        "INSERT INTO workspaces (unique_id, app_id, title, position) VALUES ($1, $2, $3, $4) RETURNING id",
+        
+    ).bind(&workspace_uid).bind(&app_uid).bind(&payload.title).bind(payload.position)
+    .fetch_one(&mut *tx)
+    .await
     {
-        println!("{}", err.to_string());
+        Ok(workspace) => workspace,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Failed to create workspace"
+                })),
+            );
+        }
+    };
+
+    let system_fields = vec![
+        ("ID", "id"),
+        ("Created At", "created_at"),
+        ("Updated At", "updated_at"),
+    ];
+
+    for (index, (title, field_type)) in system_fields.iter().enumerate() {
+        if let Err(_) = sqlx::query(
+            "INSERT INTO fields (workspace_id, unique_id, title, field_type, is_system, position) VALUES ($1, $2, $3, $4, true, $5)").bind(workspace).bind(generate_id("fld_")).bind(title).bind(field_type).bind( index as i32)
+        .execute(&mut *tx)
+        .await
+        {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Failed to create system fields"
+                })),
+            );
+        }
+    }
+
+    if let Err(_) = tx.commit().await {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({
-                "message": "Failed to create the workspace"
+                "message": "Failed to commit transaction"
             })),
         );
     }
+
     (
         StatusCode::CREATED,
         Json(json!({
             "message": "Workspace has been created!",
-            "data": WorkspaceRecord {
-                unique_id: Some(unique_id),
-                title: payload.title.to_string(),
-                position: payload.position
+            "data": {
+                "unique_id": workspace_uid,
+                "title": payload.title,
+                "position": payload.position
             }
         })),
     )

@@ -8,6 +8,8 @@ use apis::routes::*;
 use auth::*;
 use database::*;
 use system::app::*;
+use system::field::*;
+use system::record::*;
 use system::token::*;
 use system::workspace::*;
 
@@ -61,10 +63,29 @@ async fn main() {
         get(get_tokens).post(create_token).delete(delete_token),
     );
 
+    let record_routes = Router::new()
+        .route(
+            "/{workspace_uid}",
+            get(get_system_records).post(create_system_record),
+        )
+        .route(
+            "/{workspace_uid}/{record_uid}",
+            patch(update_system_record).delete(delete_system_record),
+        );
+
+    let field_routes = Router::new()
+        .route("/{workspace_uid}", get(get_fields).post(create_field))
+        .route(
+            "/{workspace_uid}/{field_uid}",
+            get(get_field).patch(update_field).delete(delete_field),
+        );
+
     let system_routes = Router::new()
         .nest("/apps", app_routes)
         .nest("/workspaces", workspace_rotues)
-        .nest("/tokens", token_routes);
+        .nest("/tokens", token_routes)
+        .nest("/records", record_routes)
+        .nest("/fields", field_routes);
 
     let auth_routes = Router::new()
         .route("/login", post(login_handler))

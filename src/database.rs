@@ -112,30 +112,14 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-        CREATE TABLE IF NOT EXISTS tables(
+        CREATE TABLE IF NOT EXISTS fields(
             id BIGSERIAL PRIMARY KEY,
             workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
             unique_id VARCHAR(255) NOT NULL UNIQUE,
             title TEXT NOT NULL,
-            position INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    ",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
-
-    sqlx::query(
-        "
-        CREATE TABLE IF NOT EXISTS fields(
-            id BIGSERIAL PRIMARY KEY,
-            table_id INTEGER NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
-            unique_id VARCHAR(255) NOT NULL UNIQUE,
-            title TEXT NOT NULL,
             field_type VARCHAR(100) NOT NULL,
             position INTEGER DEFAULT 0,
+            is_system BOOLEAN DEFAULT false,
             settings JSONB,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -150,7 +134,7 @@ pub async fn setup_database() -> AppState {
         "
         CREATE TABLE IF NOT EXISTS rows(
             id BIGSERIAL PRIMARY KEY,
-            table_id INTEGER NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
+            workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
             unique_id VARCHAR(255) NOT NULL UNIQUE,
             created_by INTEGER REFERENCES users(id),
             position BIGINT DEFAULT 0,
@@ -235,8 +219,8 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-        CREATE INDEX IF NOT EXISTS idx_tables_workspace_id
-        ON tables(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_fields_workspace_id
+    ON fields(workspace_id);
     ",
     )
     .execute(&mut *tx)
@@ -245,18 +229,8 @@ pub async fn setup_database() -> AppState {
 
     sqlx::query(
         "
-        CREATE INDEX IF NOT EXISTS idx_fields_table_id
-        ON fields(table_id);
-    ",
-    )
-    .execute(&mut *tx)
-    .await
-    .unwrap();
-
-    sqlx::query(
-        "
-        CREATE INDEX IF NOT EXISTS idx_rows_table_id
-        ON rows(table_id);
+    CREATE INDEX IF NOT EXISTS idx_rows_workspace_id
+    ON rows(workspace_id);
     ",
     )
     .execute(&mut *tx)

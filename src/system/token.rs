@@ -101,7 +101,7 @@ pub async fn create_token(
     }
 
     let token = generate_token("tk");
-    let unique_id = generate_id("tk");
+    let unique_id = generate_id("tk_");
     if let Err(_) = sqlx::query(
         "INSERT INTO tokens (owner_id, app_id, token, unique_id) VALUES ($1, $2, $3, $4)",
     )

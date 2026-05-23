@@ -60,7 +60,7 @@ pub async fn create_app(
         "INSERT INTO apps (owner_id, unique_id, title) VALUES ($1, $2, $3) RETURNING unique_id",
     )
     .bind(user_id)
-    .bind(generate_id("app"))
+    .bind(generate_id("app_"))
     .bind(&body.title)
     .fetch_one(&mut *tx)
     .await
