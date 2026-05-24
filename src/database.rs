@@ -24,10 +24,22 @@ pub async fn setup_database() -> AppState {
         .parse::<usize>()
         .unwrap_or(100);
 
+    let idle_timeout = env::var("IDLE_TIMEOUT")
+        .expect("IDLE_TIMEOUT not found!")
+        .parse::<u64>()
+        .unwrap(); // I can unwrap_or() but I prefer variable, same for below
+
+    let max_lifetime = env::var("MAX_LIFETIME")
+        .expect("MAX_LIFETIME not found!")
+        .parse::<u64>()
+        .unwrap();
+
     let pool = PgPoolOptions::new()
         .max_connections(max_connections)
         .min_connections(min_connections)
         .acquire_timeout(Duration::from_secs(5))
+        .idle_timeout(Duration::from_secs(idle_timeout))
+        .max_lifetime(Duration::from_secs(max_lifetime))
         .connect(&database_url)
         .await
         .unwrap();

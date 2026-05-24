@@ -94,15 +94,25 @@ pub async fn create_field(
     Path(workspace_uid): Path<String>,
     Json(payload): Json<FieldRequest>,
 ) -> impl IntoResponse {
+    let mut tx = match state.pool.begin().await {
+        Ok(tx) => tx,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
     let (app_uid, id) = match sqlx::query_as::<_, (String, i32)>(
         "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
     )
     .bind(&workspace_uid)
-    .fetch_one(&state.pool)
+    .fetch_one(&mut *tx)
     .await
     {
         Ok(row) => row,
-        Err(e) => {
+        Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
@@ -112,10 +122,10 @@ pub async fn create_field(
         }
     };
 
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
-        .fetch_one(&state.pool)
+        .fetch_one(&mut *tx)
         .await
     {
         return (
@@ -125,22 +135,40 @@ pub async fn create_field(
             })),
         );
     }
-    match sqlx::query("INSERT INTO fields (workspace_id, unique_id, title, field_type, position, settings) VALUES ($1, $2, $3, $4, $5, $6)").bind(id).bind(generate_id("fld_")).bind(&payload.title).bind(&payload.field_type).bind(&payload.position).bind(&payload.settings)
-        .execute(&state.pool)
-        .await {
-            Ok(_) => (
+
+    match sqlx::query("INSERT INTO fields (workspace_id, unique_id, title, field_type, position, settings) VALUES ($1, $2, $3, $4, $5, $6)")
+        .bind(id)
+        .bind(generate_id("fld_"))
+        .bind(&payload.title)
+        .bind(&payload.field_type)
+        .bind(&payload.position)
+        .bind(&payload.settings)
+        .execute(&mut *tx)
+        .await
+    {
+        Ok(_) => {
+            if let Err(_) = tx.commit().await {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "message": "Failed to commit transaction"
+                    })),
+                );
+            }
+            (
                 StatusCode::CREATED,
                 Json(json!({
                     "message": "Field has been added!",
                 })),
-            ),
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "message": "Failed to create system fields"
-                })),
             )
         }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Failed to create system fields"
+            })),
+        )
+    }
 }
 
 pub async fn get_field(

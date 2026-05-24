@@ -189,6 +189,7 @@ pub async fn update_workspace(
             })),
         );
     }
+
     if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
@@ -202,6 +203,17 @@ pub async fn update_workspace(
             })),
         );
     }
+
+    let mut tx = match state.pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Failed to start transaction" })),
+            );
+        }
+    };
+
     match sqlx::query(
         "UPDATE workspaces SET title = $1, position = $2, updated_at = $3 WHERE unique_id = $4",
     )
@@ -209,13 +221,23 @@ pub async fn update_workspace(
     .bind(&payload.position)
     .bind(chrono::Utc::now().naive_utc())
     .bind(&workspace_uid)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     {
-        Ok(result) if result.rows_affected() > 0 => (
-            StatusCode::OK,
-            Json(json!({ "message": "Workspace has been updated" })),
-        ),
+        Ok(result) if result.rows_affected() > 0 => {
+            if let Err(_) = tx.commit().await {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "message": "Failed to commit transaction"
+                    })),
+                );
+            }
+            (
+                StatusCode::OK,
+                Json(json!({ "message": "Workspace has been updated" })),
+            )
+        }
         Ok(_) => (
             StatusCode::UNAUTHORIZED,
             Json(json!({ "message": "Workspace not found!" })),

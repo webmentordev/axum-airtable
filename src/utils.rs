@@ -2,9 +2,10 @@ use nanoid::nanoid;
 use rand::{Rng, distributions::Alphanumeric};
 
 pub fn generate_id(prefix: &str) -> String {
+    let limit = rand::thread_rng().gen_range(17..=21);
     let random: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
-        .take(17)
+        .take(limit)
         .map(char::from)
         .collect();
 

@@ -86,10 +86,20 @@ pub async fn create_token(
     State(state): State<AppState>,
     Path(app_id): Path<String>,
 ) -> impl IntoResponse {
+    let mut tx = match state.pool.begin().await {
+        Ok(tx) => tx,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
     if let Err(_) = sqlx::query("SELECT app_id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_id)
-        .fetch_one(&state.pool)
+        .fetch_one(&mut *tx)
         .await
     {
         return (
@@ -109,7 +119,7 @@ pub async fn create_token(
     .bind(&app_id)
     .bind(&token)
     .bind(&unique_id)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     {
         return (
@@ -119,6 +129,16 @@ pub async fn create_token(
             })),
         );
     }
+
+    if let Err(_) = tx.commit().await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Failed to commit transaction"
+            })),
+        );
+    }
+
     (
         StatusCode::OK,
         Json(json!({
