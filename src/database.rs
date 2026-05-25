@@ -149,7 +149,6 @@ pub async fn setup_database() -> AppState {
             workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
             unique_id VARCHAR(255) NOT NULL UNIQUE,
             created_by INTEGER REFERENCES users(id),
-            position BIGINT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -163,8 +162,8 @@ pub async fn setup_database() -> AppState {
         "
         CREATE TABLE IF NOT EXISTS cells(
             id BIGSERIAL PRIMARY KEY,
-            row_id BIGINT NOT NULL REFERENCES rows(id) ON DELETE CASCADE,
-            field_id INTEGER NOT NULL REFERENCES fields(id) ON DELETE CASCADE,
+            row_id VARCHAR(255) NOT NULL REFERENCES rows(unique_id) ON DELETE CASCADE,
+            field_id VARCHAR(255) NOT NULL REFERENCES fields(unique_id) ON DELETE CASCADE,
             value_text TEXT,
             value_number DOUBLE PRECISION,
             value_boolean BOOLEAN,

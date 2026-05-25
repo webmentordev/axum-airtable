@@ -61,10 +61,8 @@ pub async fn get_fields(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch fields"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -129,10 +127,8 @@ pub async fn create_field(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch fields"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -200,10 +196,8 @@ pub async fn get_field(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch fields"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -254,10 +248,8 @@ pub async fn update_field(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch fields"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -316,10 +308,8 @@ pub async fn delete_field(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch fields"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 

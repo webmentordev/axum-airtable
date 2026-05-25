@@ -41,10 +41,8 @@ pub async fn get_workspaces(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to fetch workspaces"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -93,10 +91,8 @@ pub async fn create_workspace(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to create the workspace"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -133,7 +129,6 @@ pub async fn create_workspace(
     };
 
     let system_fields = vec![
-        ("ID", "id"),
         ("Created At", "created_at"),
         ("Updated At", "updated_at"),
     ];
@@ -197,10 +192,8 @@ pub async fn update_workspace(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to update the workspace"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
@@ -264,10 +257,8 @@ pub async fn delete_workspace(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "Failed to delete the workspace"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 

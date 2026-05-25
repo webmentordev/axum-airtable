@@ -19,6 +19,7 @@ dotenvy = "0.15"
 rand = "0.8"
 bcrypt = "0.19"
 nanoid = "0.5"
+indexmap = "2.14"
 
 
 [profile.release]

@@ -51,10 +51,8 @@ pub async fn get_tokens(
         .is_ok()
     {
         return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "message": "App not found!"
-            })),
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
         );
     }
 
