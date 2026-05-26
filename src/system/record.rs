@@ -144,13 +144,13 @@ pub async fn get_system_records(
 
 fn resolve_cell_value(field_type: &str, cell: &CellRow) -> serde_json::Value {
     match field_type {
-        "text" | "email" | "url" | "phone" | "select" => json!(cell.value_text),
-        "number" | "currency" | "percent" | "rating" => json!(cell.value_number),
+        "text" | "email" => json!(cell.value_text),
+        "number" => json!(cell.value_number),
         "checkbox" => json!(cell.value_boolean.unwrap_or(false)),
-        "date" | "datetime" => json!(cell.value_date.map(|d| d.to_string())),
-        "multi_select" | "attachments" | "collaborator" => {
-            cell.value_json.clone().unwrap_or(json!([]))
+        "date" | "created_at" | "updated_at" => {
+            json!(cell.value_date.map(|d| d.to_string()))
         }
+        "multi_select" | "attachments" => cell.value_json.clone().unwrap_or(json!([])),
         _ => cell
             .value_json
             .clone()
@@ -254,7 +254,7 @@ pub async fn create_system_record(
                         Json(json!({ "message": "Can not insert data" })),
                     );
                 }
-            },
+            }
             "email" => {
                 if let Err(_) = sqlx::query(
                     "INSERT into cells (row_id, field_id, value_text) VALUES ($1, $2, '')",
@@ -269,7 +269,7 @@ pub async fn create_system_record(
                         Json(json!({ "message": "Can not insert data" })),
                     );
                 }
-            },
+            }
             "number" => {
                 if let Err(_) = sqlx::query(
                     "INSERT into cells (row_id, field_id, value_number) VALUES ($1, $2, 0.00)",
@@ -317,10 +317,11 @@ pub async fn create_system_record(
             }
             "created_at" | "updated_at" => {
                 if let Err(_) = sqlx::query(
-                    "INSERT into cells (row_id, field_id, value_date) VALUES ($1, $2, CURRENT_TIMESTAMP)",
+                    "INSERT into cells (row_id, field_id, value_date) VALUES ($1, $2, $3)",
                 )
                 .bind(&row_uid)
                 .bind(&uid)
+                .bind(chrono::Utc::now().naive_utc())
                 .execute(&mut *tx)
                 .await
                 {
@@ -356,26 +357,63 @@ pub async fn create_system_record(
     )
 }
 
-pub async fn update_system_record(
-    AuthUser(user_id): AuthUser,
-    State(state): State<AppState>,
-    Path((workspace_uid, record_uid)): Path<(String, String)>,
-) -> impl IntoResponse {
-    (
-        StatusCode::OK,
-        Json(json!({
-            "message": "Updated a record"
-        })),
-    )
-}
-
 pub async fn delete_system_record(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
     Path((workspace_uid, record_uid)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({ "message": "Deleted a record!" })),
+    let (app_uid, id) = match sqlx::query_as::<_, (String, i32)>(
+        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
     )
+    .bind(&workspace_uid)
+    .fetch_one(&state.pool)
+    .await
+    {
+        Ok(row) => row,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({
+                    "message": "Failed to fetch fields"
+                })),
+            );
+        }
+    };
+    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+        .bind(&user_id)
+        .bind(&app_uid)
+        .fetch_one(&state.pool)
+        .await
+    {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
+        );
+    }
+
+    match sqlx::query("DELETE FROM rows WHERE unique_id = $1 AND workspace_id = $2")
+        .bind(&record_uid)
+        .bind(&id)
+        .execute(&state.pool)
+        .await
+    {
+        Ok(record) if record.rows_affected() > 0 => (
+            StatusCode::OK,
+            Json(json!({
+                "message": "Record has been deleted!",
+            })),
+        ),
+        Ok(_) => (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({
+                "message": "Failed to delete the record"
+            })),
+        ),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Internal server error"
+            })),
+        ),
+    }
 }

@@ -15,7 +15,7 @@ use system::workspace::*;
 
 use axum::{
     Json, Router,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
 };
 use dotenvy::dotenv;
 use serde::Serialize;
@@ -70,7 +70,7 @@ async fn main() {
         )
         .route(
             "/{workspace_uid}/{record_uid}",
-            patch(update_system_record).delete(delete_system_record),
+            delete(delete_system_record),
         );
 
     let field_routes = Router::new()
