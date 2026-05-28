@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -14,16 +15,20 @@ use serde_json::json;
 pub struct AppRecord {
     pub unique_id: Option<String>,
     pub title: String,
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 pub async fn get_apps(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, AppRecord>("SELECT unique_id, title FROM apps WHERE owner_id = $1")
-        .bind(user_id)
-        .fetch_all(&state.pool)
-        .await
+    match sqlx::query_as::<_, AppRecord>(
+        "SELECT unique_id, title, created_at, updated_at FROM apps WHERE owner_id = $1",
+    )
+    .bind(user_id)
+    .fetch_all(&state.pool)
+    .await
     {
         Ok(records) => (
             StatusCode::OK,
@@ -110,7 +115,7 @@ pub async fn get_app(
     Path(uid): Path<String>,
 ) -> impl IntoResponse {
     match sqlx::query_as::<_, AppRecord>(
-        "SELECT unique_id, title FROM apps WHERE unique_id = $1 AND owner_id = $2",
+        "SELECT unique_id, title, created_at, updated_at FROM apps WHERE unique_id = $1 AND owner_id = $2",
     )
     .bind(&uid)
     .bind(&user_id)

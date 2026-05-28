@@ -99,7 +99,7 @@ async fn main() {
         .nest("/auth", auth_routes)
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     let listener = TcpListener::bind(&addr).await.unwrap();
     println!("🚀 Server is running at http://{}", addr);
     axum::serve(listener, app).await.unwrap();
