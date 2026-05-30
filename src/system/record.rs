@@ -67,8 +67,8 @@ pub async fn get_system_records(
         .is_none()
     {
         return (
-            StatusCode::FORBIDDEN,
-            Json(json!({ "message": "Access denied" })),
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Records not found." })),
         );
     }
 
@@ -184,9 +184,9 @@ pub async fn create_system_record(
         Ok(row) => row,
         Err(_) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch record"
+                    "message": "Record not found."
                 })),
             );
         }
@@ -372,9 +372,9 @@ pub async fn delete_system_record(
         Ok(row) => row,
         Err(e) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             );
         }
@@ -404,9 +404,9 @@ pub async fn delete_system_record(
             })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Failed to delete the record"
+                "message": "Record not found."
             })),
         ),
         Err(_) => (

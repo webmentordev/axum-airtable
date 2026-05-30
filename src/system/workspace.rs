@@ -232,8 +232,8 @@ pub async fn update_workspace(
             )
         }
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "message": "Workspace not found!" })),
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Workspace not found." })),
         ),
         Err(e) => {
             println!("{}", e.to_string());
@@ -273,8 +273,8 @@ pub async fn delete_workspace(
             Json(json!({ "message": format!("Workspace {} has been deleted!", workspace_uid) })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "message": "Unable to delete the workspace" })),
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Workspace not found." })),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

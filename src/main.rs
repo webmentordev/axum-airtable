@@ -43,13 +43,13 @@ async fn main() {
             get(get_records).post(create_record),
         )
         .route(
-            "/record/{uid}",
+            "/record/{record_uid}",
             get(get_record).delete(delete_record).patch(update_record),
         );
     let app_routes = Router::new()
         .route("/", get(get_apps).post(create_app))
         .route(
-            "/app/{uid}",
+            "/{app_uid}",
             get(get_app).patch(update_app).delete(delete_app),
         );
     let workspace_rotues = Router::new()

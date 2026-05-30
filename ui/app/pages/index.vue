@@ -7,27 +7,17 @@
             <NuxtLink :to='`apps/${value.unique_id}`' :title="value.title" v-for="(value, index) in apps" :key="index"
                 class="p-4 bg-gray-100 border border-gray-200 rounded-lg flex">
                 <div
-                    class="w-15 h-17 flex items-center justify-center font-black text-3xl rounded-lg bg-green-300 mr-2">
+                    class="w-15 h-20 flex items-center justify-center font-black text-3xl rounded-lg bg-green-300 mr-2">
                     {{ value.title[0] }}
                 </div>
                 <div class="flex flex-col">
-                    <strong class="text-gray-800 font-black">{{ value.title.length > 20 ?
-                        value.title.slice(0, 20) +
-                        '...'
-                        :
-                        value.title }}</strong>
+                    <strong class="text-gray-800 font-black">{{ value.title.length > 20 ? value.title.slice(0, 20) +
+                        '...' : value.title }}</strong>
                     <span class="text-gray-500 text-sm font-normal">{{ value.unique_id }}</span>
-                    <span class="text-gray-400 text-[12px] mt-1 font-normal"><span class="text-main">Updated:</span> {{
-                        new Date(value.updated_at).toLocaleString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true
-                        })
-                    }}</span>
+                    <div class="flex items-center text-sm mt-1">
+                        <img src="https://api.iconify.design/ci:users-group.svg" width="19px" class="mr-1">Members:
+                        <span class="ml-1">{{ value.members_count }}</span>
+                    </div>
                 </div>
             </NuxtLink>
         </div>

@@ -101,9 +101,9 @@ pub async fn create_token(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Faild to create token"
+                "message": "Token not found."
             })),
         );
     }
@@ -162,9 +162,9 @@ pub async fn delete_token(
         .await
     {
         return (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Faild to delete the token"
+                "message": "Token not found."
             })),
         );
     }
@@ -179,8 +179,8 @@ pub async fn delete_token(
             Json(json!({ "message": format!("Token has been deleted!") })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "message": "Token not found!" })),
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Token not found." })),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

@@ -12,19 +12,32 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
-pub struct AppRecord {
+pub struct AppResponse {
     pub unique_id: Option<String>,
     pub title: String,
     pub created_at: Option<NaiveDateTime>,
     pub updated_at: Option<NaiveDateTime>,
+    #[sqlx(default)]
+    pub members_count: i64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AppRecord {
+    pub title: String,
 }
 
 pub async fn get_apps(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, AppRecord>(
-        "SELECT unique_id, title, created_at, updated_at FROM apps WHERE owner_id = $1",
+    match sqlx::query_as::<_, AppResponse>(
+        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count
+         FROM apps a
+         JOIN members mem ON a.unique_id = mem.app_id
+         LEFT JOIN members m ON a.unique_id = m.app_id
+         WHERE mem.member_id = $1
+         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at
+         ORDER BY a.created_at DESC",
     )
     .bind(user_id)
     .fetch_all(&state.pool)
@@ -114,8 +127,13 @@ pub async fn get_app(
     State(state): State<AppState>,
     Path(uid): Path<String>,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, AppRecord>(
-        "SELECT unique_id, title, created_at, updated_at FROM apps WHERE unique_id = $1 AND owner_id = $2",
+    match sqlx::query_as::<_, AppResponse>(
+        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count
+         FROM apps a
+         JOIN members mem ON a.unique_id = mem.app_id
+         LEFT JOIN members m ON a.unique_id = m.app_id
+         WHERE a.unique_id = $1 AND mem.member_id = $2
+         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at",
     )
     .bind(&uid)
     .bind(&user_id)
@@ -130,7 +148,7 @@ pub async fn get_app(
             })),
         ),
         Err(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
                 "message": "App not found!"
             })),
@@ -161,7 +179,7 @@ pub async fn update_app(
             })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({ "message": "App not found!" })),
         ),
         Err(_) => (
@@ -187,8 +205,8 @@ pub async fn delete_app(
             Json(json!({ "message": format!("App {} has been deleted!", uid) })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "message": "Only owner can delete the app" })),
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Failed to update the app" })),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

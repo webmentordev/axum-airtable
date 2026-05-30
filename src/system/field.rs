@@ -46,9 +46,9 @@ pub async fn get_fields(
         Ok(row) => row,
         Err(e) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found"
                 })),
             );
         }
@@ -77,9 +77,9 @@ pub async fn get_fields(
         Err(e) => {
             println!("{}", e);
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             )
         }
@@ -112,9 +112,9 @@ pub async fn create_field(
         Ok(row) => row,
         Err(_) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             );
         }
@@ -182,9 +182,9 @@ pub async fn get_field(
         Ok(row) => row,
         Err(e) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             );
         }
@@ -210,9 +210,9 @@ pub async fn get_field(
                 })),
         ),
         Err(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Failed to fetch the field"
+                "message": "Field not found."
             })),
         )
     }
@@ -234,9 +234,9 @@ pub async fn update_field(
         Ok(row) => row,
         Err(e) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             );
         }
@@ -265,9 +265,9 @@ pub async fn update_field(
             })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Failed to update the field"
+                "message": "Field not found."
             })),
         ),
         Err(_) => (
@@ -294,9 +294,9 @@ pub async fn delete_field(
         Ok(row) => row,
         Err(e) => {
             return (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::NOT_FOUND,
                 Json(json!({
-                    "message": "Failed to fetch fields"
+                    "message": "Fields not found."
                 })),
             );
         }
@@ -325,9 +325,9 @@ pub async fn delete_field(
             })),
         ),
         Ok(_) => (
-            StatusCode::UNAUTHORIZED,
+            StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "Failed to delete the field"
+                "message": "Field not found."
             })),
         ),
         Err(_) => (
