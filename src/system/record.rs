@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 use crate::AuthUser;
-use crate::Response;
 use crate::database::AppState;
 use crate::utils::generate_id;
 
@@ -13,7 +10,6 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(sqlx::FromRow)]
@@ -370,7 +366,7 @@ pub async fn delete_system_record(
     .await
     {
         Ok(row) => row,
-        Err(e) => {
+        Err(_) => {
             return (
                 StatusCode::NOT_FOUND,
                 Json(json!({
@@ -379,7 +375,7 @@ pub async fn delete_system_record(
             );
         }
     };
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)

@@ -43,7 +43,7 @@
                             to="/login" class="text-main underline">Login here</NuxtLink>
                     </p>
 
-                    <AlertsSuccess v-if="created" message="Account has been created!" />
+                    <AlertsSuccess v-if="message" :message="message" @close="message = ''" />
                     <AppLoading v-if="processing" message="Processing signup request..." />
                     <AlertsError v-if="errors.message" :message="errors.message" />
                 </form>
@@ -63,7 +63,7 @@ const email = ref("");
 const password = ref("");
 const confirm_password = ref("");
 const processing = ref(false);
-const created = ref(false);
+const message = ref(false);
 const errors = ref({
     name: null,
     username: null,
@@ -76,7 +76,7 @@ const errors = ref({
 
 async function login() {
     processing.value = true;
-    created.value = false;
+    message.value = false;
     reset_errors();
     if (name.value == "") {
         errors.value.name = "Name is required";
@@ -118,7 +118,7 @@ async function login() {
             }
         });
         if (data.message) {
-            created.value = true;
+            message.value = data.message;
         }
     } catch (e) {
         errors.value.message = e.statusMessage || 'Something went wrong!';

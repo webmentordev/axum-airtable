@@ -1,5 +1,4 @@
 use crate::AuthUser;
-use crate::Response;
 use crate::database::AppState;
 use crate::utils::generate_id;
 
@@ -164,7 +163,9 @@ pub async fn create_workspace(
             "data": {
                 "unique_id": workspace_uid,
                 "title": payload.title,
-                "position": payload.position
+                "position": payload.position,
+                "created_at": chrono::Utc::now().naive_utc(),
+                "updated_at": chrono::Utc::now().naive_utc(),
             }
         })),
     )
@@ -235,8 +236,7 @@ pub async fn update_workspace(
             StatusCode::NOT_FOUND,
             Json(json!({ "message": "Workspace not found." })),
         ),
-        Err(e) => {
-            println!("{}", e.to_string());
+        Err(_) => {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "message": "Something went wrong!" })),

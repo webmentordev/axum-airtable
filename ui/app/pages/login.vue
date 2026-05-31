@@ -23,12 +23,7 @@
                         class="text-para-light inline-block underline text-sm ml-1 mt-3 hover:text-main">Forgotten
                         password?</NuxtLink>
 
-                    <button v-if="!processing" type="submit"
-                        class="bg-main mt-4 text-white w-full py-3 rounded-xl flex items-center justify-center hover:bg-main/90 group">
-                        <span class="mr-3">Login</span>
-                        <img class="mt-1 transition-all group-hover:transition-all group-hover:translate-x-4"
-                            src="https://api.iconify.design/line-md:arrow-right.svg?color=%23ffffff" width="15">
-                    </button>
+                    <Button v-if="!processing" type="submit" text="Login" />
 
                     <p class="text-para-light inline-block text-sm ml-1 mt-3">Don't have an account? <NuxtLink
                             to="/register" class="text-main underline">Register here</NuxtLink>

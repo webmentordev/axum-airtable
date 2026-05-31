@@ -19,6 +19,22 @@ pub struct AppResponse {
     pub updated_at: Option<NaiveDateTime>,
     #[sqlx(default)]
     pub members_count: i64,
+    pub is_owner: bool,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct Workspace {
+    pub unique_id: String,
+    pub title: String,
+    pub position: i32,
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SingleAppResponse {
+    pub app: AppResponse,
+    pub workspaces: Vec<Workspace>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,12 +47,13 @@ pub async fn get_apps(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     match sqlx::query_as::<_, AppResponse>(
-        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count
+        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count,
+                (a.owner_id = $1) as is_owner
          FROM apps a
          JOIN members mem ON a.unique_id = mem.app_id
          LEFT JOIN members m ON a.unique_id = m.app_id
          WHERE mem.member_id = $1
-         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at
+         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at, a.owner_id
          ORDER BY a.created_at DESC",
     )
     .bind(user_id)
@@ -94,7 +111,7 @@ pub async fn create_app(
 
     if let Err(_) = sqlx::query("INSERT INTO members (member_id, app_id) VALUES ($1, $2)")
         .bind(user_id)
-        .bind(app_id)
+        .bind(&app_id)
         .execute(&mut *tx)
         .await
     {
@@ -117,7 +134,13 @@ pub async fn create_app(
     (
         StatusCode::CREATED,
         Json(json!({
-            "message": "App has been created!"
+            "message": "App has been created!",
+            "data": {
+                "unique_id": &app_id,
+                "title": &body.title,
+                "members_count": 1,
+                "is_owner": true
+            }
         })),
     )
 }
@@ -128,25 +151,41 @@ pub async fn get_app(
     Path(uid): Path<String>,
 ) -> impl IntoResponse {
     match sqlx::query_as::<_, AppResponse>(
-        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count
+        "SELECT a.unique_id, a.title, a.created_at, a.updated_at, COUNT(m.id) as members_count,
+                (a.owner_id = $2) as is_owner
          FROM apps a
          JOIN members mem ON a.unique_id = mem.app_id
          LEFT JOIN members m ON a.unique_id = m.app_id
          WHERE a.unique_id = $1 AND mem.member_id = $2
-         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at",
+         GROUP BY a.id, a.unique_id, a.title, a.created_at, a.updated_at, a.owner_id",
     )
     .bind(&uid)
     .bind(&user_id)
     .fetch_one(&state.pool)
     .await
     {
-        Ok(row) => (
-            StatusCode::OK,
-            Json(json!({
-                "message": "App has been fetched!",
-                "data": row
-            })),
-        ),
+        Ok(app) => {
+            let workspaces = sqlx::query_as::<_, Workspace>(
+                "SELECT unique_id, title, position, created_at, updated_at
+                 FROM workspaces
+                 WHERE app_id = $1
+                 ORDER BY position ASC",
+            )
+            .bind(&uid)
+            .fetch_all(&state.pool)
+            .await
+            .unwrap_or_default();
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "message": "App has been fetched!",
+                    "data": SingleAppResponse{
+                        app,
+                        workspaces
+                    }
+                })),
+            )
+        }
         Err(_) => (
             StatusCode::NOT_FOUND,
             Json(json!({
@@ -206,7 +245,7 @@ pub async fn delete_app(
         ),
         Ok(_) => (
             StatusCode::NOT_FOUND,
-            Json(json!({ "message": "Failed to update the app" })),
+            Json(json!({ "message": "Failed to delete the app." })),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,

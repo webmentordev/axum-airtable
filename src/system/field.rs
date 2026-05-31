@@ -1,5 +1,4 @@
 use crate::AuthUser;
-use crate::Response;
 use crate::database::AppState;
 use crate::utils::generate_id;
 
@@ -9,7 +8,6 @@ use axum::{
     extract::{Path, State},
     response::IntoResponse,
 };
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -44,7 +42,7 @@ pub async fn get_fields(
     .await
     {
         Ok(row) => row,
-        Err(e) => {
+        Err(_) => {
             return (
                 StatusCode::NOT_FOUND,
                 Json(json!({
@@ -54,7 +52,7 @@ pub async fn get_fields(
         }
     };
 
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)
@@ -74,8 +72,7 @@ pub async fn get_fields(
                 "data": result
             })),
         ),
-        Err(e) => {
-            println!("{}", e);
+        Err(_) => {
             return (
                 StatusCode::NOT_FOUND,
                 Json(json!({
@@ -172,24 +169,23 @@ pub async fn get_field(
     State(state): State<AppState>,
     Path((workspace_uid, field_uid)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let (app_uid, id) = match sqlx::query_as::<_, (String, i32)>(
-        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
-    )
-    .bind(&workspace_uid)
-    .fetch_one(&state.pool)
-    .await
-    {
-        Ok(row) => row,
-        Err(e) => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "message": "Fields not found."
-                })),
-            );
-        }
-    };
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    let app_uid =
+        match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
+            .bind(&workspace_uid)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(row) => row,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "Fields not found."
+                    })),
+                );
+            }
+        };
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)
@@ -224,24 +220,23 @@ pub async fn update_field(
     Path((workspace_uid, field_uid)): Path<(String, String)>,
     Json(payload): Json<FieldRequest>,
 ) -> impl IntoResponse {
-    let (app_uid, id) = match sqlx::query_as::<_, (String, i32)>(
-        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
-    )
-    .bind(&workspace_uid)
-    .fetch_one(&state.pool)
-    .await
-    {
-        Ok(row) => row,
-        Err(e) => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "message": "Fields not found."
-                })),
-            );
-        }
-    };
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    let app_uid =
+        match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
+            .bind(&workspace_uid)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(row) => row,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "Fields not found."
+                    })),
+                );
+            }
+        };
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)
@@ -284,24 +279,23 @@ pub async fn delete_field(
     State(state): State<AppState>,
     Path((workspace_uid, field_uid)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let (app_uid, id) = match sqlx::query_as::<_, (String, i32)>(
-        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
-    )
-    .bind(&workspace_uid)
-    .fetch_one(&state.pool)
-    .await
-    {
-        Ok(row) => row,
-        Err(e) => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "message": "Fields not found."
-                })),
-            );
-        }
-    };
-    if let Err(e) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    let app_uid =
+        match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
+            .bind(&workspace_uid)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(row) => row,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "Fields not found."
+                    })),
+                );
+            }
+        };
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)
