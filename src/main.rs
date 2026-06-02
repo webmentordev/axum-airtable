@@ -9,6 +9,7 @@ use auth::*;
 use database::*;
 use system::app::*;
 use system::field::*;
+use system::members::*;
 use system::record::*;
 use system::token::*;
 use system::workspace::*;
@@ -80,8 +81,11 @@ async fn main() {
             get(get_field).patch(update_field).delete(delete_field),
         );
 
+    let member_routes = Router::new().route("/", post(add_member));
+
     let system_routes = Router::new()
         .nest("/apps", app_routes)
+        .nest("/members", member_routes)
         .nest("/workspaces", workspace_rotues)
         .nest("/tokens", token_routes)
         .nest("/records", record_routes)

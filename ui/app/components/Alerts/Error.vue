@@ -3,7 +3,7 @@
         <div class="flex items-center">
             <img src="https://api.iconify.design/oui:cross-in-circle-empty.svg?color=%23e01f1f" width="15px">
             <div class="flex flex-col ml-3 border-l border-white/10 pl-3">
-                <h3 class="text-red-500">Woopsie, Something went wrong.</h3>
+                <h3 class="text-red-500">An error occured!</h3>
                 <p class="text-[12px] text-white">{{ message }}</p>
             </div>
         </div>
