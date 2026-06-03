@@ -140,7 +140,7 @@ pub async fn get_system_records(
 
 fn resolve_cell_value(field_type: &str, cell: &CellRow) -> serde_json::Value {
     match field_type {
-        "text" | "email" => json!(cell.value_text),
+        "text" | "email" | "phone" => json!(cell.value_text),
         "number" => json!(cell.value_number),
         "checkbox" => json!(cell.value_boolean.unwrap_or(false)),
         "date" | "created_at" | "updated_at" => {
@@ -251,7 +251,7 @@ pub async fn create_system_record(
                     );
                 }
             }
-            "email" => {
+            "email" | "phone" => {
                 if let Err(_) = sqlx::query(
                     "INSERT into cells (row_id, field_id, value_text) VALUES ($1, $2, '')",
                 )

@@ -53,8 +53,39 @@
                 </div>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-6 h-full bg-gray-100 border-b border-slate-200" v-if="workspaces.length > 0">
-
+        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-scroll"
+            v-if="workspaces.length > 0">
+            <table class="w-fit table-auto records">
+                <tr class="w-fit">
+                    <th>ID#</th>
+                    <th v-for="field in fields" :key="field.id">
+                        <div class="flex items-center">
+                            <img :src="sysFields[field.type]" width="18px" />
+                            <span class="ml-1">{{ field.title }}</span>
+                        </div>
+                    </th>
+                    <th>
+                        <button @click="create_field" class="flex items-center justify-center w-full">
+                            <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
+                        </button>
+                    </th>
+                </tr>
+                <tr v-for="record in records" :key="record.id">
+                    <td>{{ record.id }}</td>
+                    <td v-for="field in fields" :key="field.id" class="cursor-pointer">
+                        {{ record[field.title] || "" }}
+                    </td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>
+                        <button @click="create_record" class="flex w-full items-center justify-center">
+                            <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
+                        </button>
+                    </td>
+                    <td colspan="100%"></td>
+                </tr>
+            </table>
         </div>
         <div class="flex items-center p-2" v-if="workspaces.length > 0">
             <button @click="delete_workspace"
@@ -63,11 +94,17 @@
     </div>
 </template>
 <script lang="js" setup>
+
 definePageMeta({
     middleware: 'auth'
 });
 
 const { getToken } = useAuthToken();
+const sysFields = ref(useFields());
+
+const records = ref([]);
+const fields = ref([]);
+
 const id = useRoute().params.id;
 const app = ref({});
 const workspaces = ref([]);
@@ -94,10 +131,35 @@ try {
     workspaces.value = data.value.data.workspaces;
     if (workspaces.value.length > 0) {
         active_workspace.value = workspaces.value[0].unique_id;
+        await fetch_records(active_workspace.value);
     }
 } catch (e) {
     console.log(e)
 }
+
+watch(active_workspace, async (newWorkspaceId) => {
+    if (newWorkspaceId) {
+        await fetch_records(newWorkspaceId);
+        console.log(newWorkspaceId);
+    }
+});
+
+async function fetch_records(newWorkspaceID) {
+    try {
+        const data = await $fetch("/api/records/records", {
+            method: "POST",
+            body: {
+                token: getToken(),
+                workspace: newWorkspaceID
+            }
+        });
+        fields.value = data.fields;
+        records.value = data.records;
+    } catch (e) {
+        errors.value.message = e.statusMessage || 'Failed to fetch records.';
+    }
+}
+
 
 async function create_workspace() {
     processing.value = true;
@@ -175,6 +237,24 @@ async function delete_app() {
         navigateTo("/");
     } catch (e) {
         errors.value.message = e.statusMessage || 'Failed to delete app.';
+    } finally {
+        processing.value = false;
+    }
+}
+
+async function create_record() {
+    processing.value = true;
+    try {
+        const data = await $fetch("/api/records/create", {
+            method: "POST",
+            body: {
+                token: getToken(),
+                workspace: active_workspace.value,
+            }
+        });
+        message.value = data.message;
+    } catch (e) {
+        errors.value.message = e.statusMessage || 'Failed to create record.';
     } finally {
         processing.value = false;
     }
