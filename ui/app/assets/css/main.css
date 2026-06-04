@@ -44,7 +44,15 @@ a {
     @apply cursor-pointer;
 }
 
-.records th,
+.records th:first-child,
+.records td:first-child {
+    @apply w-[80px];
+}
+
+.records th {
+    @apply w-[220px] text-start py-1 px-3 border border-gray-300 text-[12px];
+}
+
 .records td {
     @apply w-[220px] text-start py-2 px-3 border border-gray-300 text-[12px];
 }

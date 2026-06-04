@@ -57,11 +57,17 @@
             v-if="workspaces.length > 0">
             <table class="w-fit table-auto records">
                 <tr class="w-fit">
-                    <th>ID#</th>
+                    <th>ID #</th>
+                    <th>Record ID #</th>
                     <th v-for="field in fields" :key="field.id">
-                        <div class="flex items-center">
-                            <img :src="sysFields[field.type]" width="18px" />
-                            <span class="ml-1">{{ field.title }}</span>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <img :src="sysFields[field.type]" width="18px" />
+                                <span class="ml-1">{{ field.title }}</span>
+                            </div>
+                            <img v-if="!field.is_system"
+                                src="https://api.iconify.design/material-symbols-light:arrow-drop-down-rounded.svg?color=%233d3846"
+                                width="28px">
                         </div>
                     </th>
                     <th>
@@ -70,7 +76,8 @@
                         </button>
                     </th>
                 </tr>
-                <tr v-for="record in records" :key="record.id">
+                <tr v-for="(record, index) in records" :key="record.id">
+                    <td>{{ index + 1 }}</td>
                     <td>{{ record.id }}</td>
                     <td v-for="field in fields" :key="field.id" class="cursor-pointer">
                         {{ record[field.title] || "" }}
@@ -90,6 +97,7 @@
         <div class="flex items-center p-2" v-if="workspaces.length > 0">
             <button @click="delete_workspace"
                 class="flex-end py-2 px-4 bg-red-500 text-white rounded-lg text-[10px]">Delete</button>
+            <span class="ml-3">Total records: {{ records.length }} / {{ total_records }}</span>
         </div>
     </div>
 </template>
@@ -104,6 +112,9 @@ const sysFields = ref(useFields());
 
 const records = ref([]);
 const fields = ref([]);
+const total_records = ref(0);
+const current_page = ref(1);
+const total_pages = ref(0);
 
 const id = useRoute().params.id;
 const app = ref({});
@@ -150,11 +161,14 @@ async function fetch_records(newWorkspaceID) {
             method: "POST",
             body: {
                 token: getToken(),
-                workspace: newWorkspaceID
+                workspace: newWorkspaceID,
+                page: current_page.value
             }
         });
         fields.value = data.fields;
         records.value = data.records;
+        total_records.value = data.total_records;
+        total_pages.value = data.total_pages;
     } catch (e) {
         errors.value.message = e.statusMessage || 'Failed to fetch records.';
     }

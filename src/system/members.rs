@@ -1,13 +1,7 @@
+use crate::AuthUser;
 use crate::database::AppState;
-use crate::{AuthUser, utils::generate_id};
 
-use axum::{
-    Json,
-    extract::{Path, State},
-    http::StatusCode,
-    response::IntoResponse,
-};
-use chrono::NaiveDateTime;
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

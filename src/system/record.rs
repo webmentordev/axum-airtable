@@ -5,12 +5,18 @@ use crate::utils::generate_id;
 use axum::http::StatusCode;
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::IntoResponse,
 };
 use chrono::NaiveDateTime;
 use indexmap::IndexMap;
+use serde::Deserialize;
 use serde_json::json;
+
+#[derive(Deserialize)]
+pub struct Pagination {
+    page: i64,
+}
 
 #[derive(sqlx::FromRow)]
 struct FieldRow {
@@ -37,6 +43,7 @@ struct CellRow {
 pub async fn get_system_records(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
+    Query(pagination): Query<Pagination>,
     Path(workspace_uid): Path<String>,
 ) -> impl IntoResponse {
     let (app_uid, workspace_id) = match sqlx::query_as::<_, (String, i32)>(
@@ -68,11 +75,30 @@ pub async fn get_system_records(
         );
     }
 
+    let total_records =
+        match sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM rows WHERE workspace_id = $1")
+            .bind(&workspace_id)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(records) => records,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({ "message": "Records not found." })),
+                );
+            }
+        };
+
+    let record_per_page = state.record_limit as i64;
+    let total_pages = ((total_records as f64) / (record_per_page as f64)).ceil() as i32;
+    let off_set = (pagination.page - 1) * record_per_page;
+
     let fields = sqlx::query_as::<_, FieldRow>(
         "SELECT unique_id, title, field_type, position, is_system, settings
-         FROM fields
-         WHERE workspace_id = $1
-         ORDER BY position ASC",
+     FROM fields
+     WHERE workspace_id = $1
+     ORDER BY position ASC",
     )
     .bind(workspace_id)
     .fetch_all(&state.pool)
@@ -81,22 +107,27 @@ pub async fn get_system_records(
 
     let raw = sqlx::query_as::<_, CellRow>(
         "SELECT
-             r.unique_id  AS row_id,
-             r.created_at AS row_created_at,
-             f.unique_id  AS field_id,
-             f.field_type,
-             c.value_text,
-             c.value_number,
-             c.value_boolean,
-             c.value_date,
-             c.value_json
-         FROM rows r
-         LEFT JOIN cells c ON c.row_id = r.unique_id
-         LEFT JOIN fields f ON f.unique_id = c.field_id
-         WHERE r.workspace_id = $1
-         ORDER BY r.id ASC, f.position ASC",
+         r.unique_id  AS row_id,
+         r.created_at AS row_created_at,
+         f.unique_id  AS field_id,
+         f.field_type,
+         c.value_text,
+         c.value_number,
+         c.value_boolean,
+         c.value_date,
+         c.value_json
+     FROM rows r
+     LEFT JOIN cells c ON c.row_id = r.unique_id
+     LEFT JOIN fields f ON f.unique_id = c.field_id
+     WHERE r.workspace_id = $1 AND r.unique_id IN (
+         SELECT unique_id FROM rows WHERE workspace_id = $1 
+         ORDER BY id ASC LIMIT $2 OFFSET $3
+     )
+     ORDER BY r.id ASC, f.position ASC",
     )
     .bind(workspace_id)
+    .bind(record_per_page)
+    .bind(off_set)
     .fetch_all(&state.pool)
     .await
     .unwrap_or_default();
@@ -125,6 +156,8 @@ pub async fn get_system_records(
     (
         StatusCode::OK,
         Json(json!({
+            "total_records": total_records,
+            "total_pages": total_pages,
             "fields": fields.iter().map(|f| json!({
                 "id": f.unique_id,
                 "title": f.title,
