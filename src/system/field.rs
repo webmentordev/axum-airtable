@@ -129,10 +129,24 @@ pub async fn create_field(
         );
     }
 
+    let title = payload.title.trim();
+    if sqlx::query("SELECT id FROM fields WHERE workspace_id = $1 AND title = $2")
+        .bind(&id)
+        .bind(&title)
+        .fetch_one(&mut *tx)
+        .await
+        .is_ok()
+    {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Field already exist!" })),
+        );
+    }
+
     match sqlx::query("INSERT INTO fields (workspace_id, unique_id, title, field_type, position, settings) VALUES ($1, $2, $3, $4, $5, $6)")
-        .bind(id)
+        .bind(&id)
         .bind(generate_id("fld_"))
-        .bind(&payload.title)
+        .bind(&title)
         .bind(&payload.field_type)
         .bind(&payload.position)
         .bind(&payload.settings)

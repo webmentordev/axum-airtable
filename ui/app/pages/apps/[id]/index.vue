@@ -43,7 +43,7 @@
                     <form @submit.prevent="create_workspace"
                         class="w-62.5 p-3 bg-white border border-gray-200 rounded-lg absolute top-8 left-0 z-20"
                         v-show="dropdown">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col mb-3">
                             <AppInput v-model="title" type="text" placeholder="Workspace title" />
                             <AlertsAlertError v-if="errors.title" error="Workspace title is required!" />
                         </div>
@@ -53,45 +53,43 @@
                 </div>
             </div>
         </div>
-        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-scroll"
-            v-if="workspaces.length > 0">
-            <table class="w-fit table-auto records">
-                <tr class="w-fit">
-                    <th>ID #</th>
-                    <th>Record ID #</th>
-                    <th v-for="field in fields" :key="field.id">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <img :src="sysFields[field.type]" width="18px" />
-                                <span class="ml-1">{{ field.title }}</span>
-                            </div>
-                            <img v-if="!field.is_system"
-                                src="https://api.iconify.design/material-symbols-light:arrow-drop-down-rounded.svg?color=%233d3846"
-                                width="28px">
-                        </div>
-                    </th>
-                    <th>
-                        <button @click="create_field" class="flex items-center justify-center w-full">
-                            <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
-                        </button>
-                    </th>
-                </tr>
-                <tr v-for="(record, index) in records" :key="record.id">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ record.id }}</td>
-                    <td v-for="field in fields" :key="field.id" class="cursor-pointer">
-                        {{ record[field.title] || "" }}
-                    </td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>
-                        <button @click="create_record" class="flex w-full items-center justify-center">
-                            <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
-                        </button>
-                    </td>
-                    <td colspan="100%"></td>
-                </tr>
+        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-x-auto">
+            <table class="table-auto records max-w-fit">
+                <thead>
+                    <tr>
+                        <th>ID #</th>
+                        <th>Record ID #</th>
+                        <th v-for="field in fields" :key="field.id">
+                            <AppHeadCell @field-deleted="handleFieldDeleted" :workspace="active_workspace"
+                                :field="field" />
+                        </th>
+                        <th>
+                            <button @click="create_field" class="flex items-center justify-center w-full">
+                                <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
+                            </button>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(record, index) in records" :key="record.id">
+                        <td>{{ index + 1 }}</td>
+                        <td>{{ record.id }}</td>
+                        <td v-for="field in fields" :key="field.id">
+                            <AppCell :record="record" :field="field" />
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>
+                            <button @click="create_record" class="flex w-full items-center justify-center">
+                                <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
+                            </button>
+                        </td>
+                        <td colspan="100%"></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
         <div class="flex items-center p-2" v-if="workspaces.length > 0">
@@ -102,13 +100,11 @@
     </div>
 </template>
 <script lang="js" setup>
-
 definePageMeta({
     middleware: 'auth'
 });
-
 const { getToken } = useAuthToken();
-const sysFields = ref(useFields());
+
 
 const records = ref([]);
 const fields = ref([]);
@@ -274,6 +270,17 @@ async function create_record() {
     }
 }
 
+const handleFieldDeleted = (fieldId) => {
+    const fieldToDelete = fields.value.find(f => f.id === fieldId);
+    fields.value = fields.value.filter(f => f.id !== fieldId);
+    if (fieldToDelete) {
+        records.value = records.value.map(record => {
+            const updatedRecord = { ...record };
+            delete updatedRecord[fieldToDelete.title];
+            return updatedRecord;
+        });
+    }
+};
 
 function reset_errors() {
     errors.value = {

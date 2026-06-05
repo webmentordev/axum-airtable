@@ -1,5 +1,5 @@
 * Find a better way to handle Authentication token validation (JWT are stateless so we can not invalidate them)
 * Use argon2 for password validation, bcrypt is slow with DEFAULT_COST (1.5sec) which is slow underload
 * Cover edge cases in the field update
-* Create an enum with all column dtaa types.  
+* Create an enum with all column data types.  
 * Improve code like add_member function, short errors object.

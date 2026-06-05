@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed left-2 bottom-2 bg-dark border border-white/10 rounded-xl max-w-85 w-full">
+    <div class="fixed left-2 bottom-2 bg-dark border border-white/10 rounded-xl max-w-85 w-full z-50">
         <div class="flex items-center justify-between relative py-3 px-4">
             <div class="flex items-center">
                 <img src="https://api.iconify.design/ic:baseline-check-circle-outline.svg?color=%232aea40" width="15px">
