@@ -66,18 +66,29 @@
                         <th>
                             <button @click="create_field" class="flex items-center justify-center w-full">
                                 <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
+                                <span class="ml-1">Add column</span>
                             </button>
                         </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(record, index) in records" :key="record.id">
+                    <tr v-if="records.length > 0" v-for="(record, index) in records" :key="record.id">
                         <td>{{ index + 1 }}</td>
                         <td>{{ record.id }}</td>
                         <td v-for="field in fields" :key="field.id">
                             <AppCell :record="record" :field="field" />
                         </td>
-                        <td></td>
+                        <td>
+                            <button class="w-full flex items-center justify-center rounded-lg bg-red-500 p-1"
+                                @click="delete_record(record.id)">
+                                <span class="text-white mr-1">Delete</span>
+                                <img src="https://api.iconify.design/solar:trash-bin-minimalistic-bold.svg?color=%23ffffff"
+                                    width="15px">
+                            </button>
+                        </td>
+                    </tr>
+                    <tr v-else>
+                        <td colspan="100%">No record found in the table.</td>
                     </tr>
                 </tbody>
                 <tfoot>
@@ -265,6 +276,26 @@ async function create_record() {
         message.value = data.message;
     } catch (e) {
         errors.value.message = e.statusMessage || 'Failed to create record.';
+    } finally {
+        processing.value = false;
+    }
+}
+
+async function delete_record(recordID) {
+    processing.value = true;
+    try {
+        const data = await $fetch("/api/records/delete", {
+            method: "POST",
+            body: {
+                token: getToken(),
+                workspace: active_workspace.value,
+                record: recordID
+            }
+        });
+        message.value = data.message;
+        records.value = records.value.filter(r => r.id !== recordID);
+    } catch (e) {
+        errors.value.message = e.statusMessage || 'Failed to delete record.';
     } finally {
         processing.value = false;
     }

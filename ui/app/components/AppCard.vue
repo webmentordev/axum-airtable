@@ -5,7 +5,7 @@
             <img src="https://api.iconify.design/mdi:dots-vertical.svg" width="18px">
         </button>
         <NuxtLink class="flex p-4" :to='`apps/${value.unique_id}`'>
-            <div class="w-15 h-20 flex items-center justify-center font-black text-3xl rounded-lg bg-green-300 mr-2">
+            <div class="w-15 h-20 flex items-center justify-center font-black text-3xl rounded-lg bg-main mr-2">
                 {{ value.title[0] }}
             </div>
             <div class="flex flex-col">
