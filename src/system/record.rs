@@ -161,7 +161,7 @@ pub async fn get_system_records(
             "fields": fields.iter().map(|f| json!({
                 "id": f.unique_id,
                 "title": f.title,
-                "type": f.field_type,
+                "field_type": f.field_type,
                 "position": f.position,
                 "is_system": f.is_system,
                 "settings": f.settings

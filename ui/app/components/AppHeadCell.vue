@@ -4,7 +4,7 @@
         <AppLoading v-if="processing" message="Processing request..." />
         <AlertsError v-if="errors.message" :message="errors.message" />
         <div class="flex items-center">
-            <img :src="sysFields[field.type]" width="18px" />
+            <img :src="sysFields[field.field_type]" width="18px" />
             <span class="ml-1">{{ field.title }}</span>
         </div>
         <button @click="dropdown = !dropdown">

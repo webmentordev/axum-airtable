@@ -45,7 +45,7 @@ a {
 
 .records th:first-child,
 .records td:first-child {
-    @apply min-w-20 max-w-20;
+    @apply min-w-20 max-w-20 py-1;
 }
 
 .records th {

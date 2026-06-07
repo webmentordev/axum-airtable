@@ -64,10 +64,7 @@
                                 :field="field" />
                         </th>
                         <th>
-                            <button @click="create_field" class="flex items-center justify-center w-full">
-                                <img src="https://api.iconify.design/material-symbols:add-2-rounded.svg" width="20px" />
-                                <span class="ml-1">Add column</span>
-                            </button>
+                            <AppCreateColumn @field-created="handleFieldCreated" :workspace="active_workspace" />
                         </th>
                     </tr>
                 </thead>
@@ -79,7 +76,7 @@
                             <AppCell :record="record" :field="field" />
                         </td>
                         <td>
-                            <button class="w-full flex items-center justify-center rounded-lg bg-red-500 p-1"
+                            <button class="w-fit flex items-center justify-center rounded-lg bg-red-500 p-1 px-2 m-auto"
                                 @click="delete_record(record.id)">
                                 <span class="text-white mr-1">Delete</span>
                                 <img src="https://api.iconify.design/solar:trash-bin-minimalistic-bold.svg?color=%23ffffff"
@@ -311,6 +308,10 @@ const handleFieldDeleted = (fieldId) => {
             return updatedRecord;
         });
     }
+};
+
+const handleFieldCreated = (field) => {
+    fields.value.push(field);
 };
 
 function reset_errors() {

@@ -3,7 +3,8 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   try {
     const data = await $fetch(`${apiUrl}/system/fields/${body.workspace}`, {
-      headers: {
+        method: "POST",
+        headers: {
             "Authorization": `Bearer ${body.token}`,
             "Content-Type": "application/json",
             "Accept": "application/json"

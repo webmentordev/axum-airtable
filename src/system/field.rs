@@ -129,7 +129,8 @@ pub async fn create_field(
         );
     }
 
-    let title = payload.title.trim();
+    let title = payload.title.trim().to_string();
+    let field_type = payload.field_type.trim().to_lowercase();
     if sqlx::query("SELECT id FROM fields WHERE workspace_id = $1 AND title = $2")
         .bind(&id)
         .bind(&title)
@@ -143,11 +144,12 @@ pub async fn create_field(
         );
     }
 
+    let generated_id = generate_id("fld_");
     match sqlx::query("INSERT INTO fields (workspace_id, unique_id, title, field_type, position, settings) VALUES ($1, $2, $3, $4, $5, $6)")
         .bind(&id)
-        .bind(generate_id("fld_"))
+        .bind(&generated_id)
         .bind(&title)
-        .bind(&payload.field_type)
+        .bind(&field_type)
         .bind(&payload.position)
         .bind(&payload.settings)
         .execute(&mut *tx)
@@ -166,6 +168,14 @@ pub async fn create_field(
                 StatusCode::CREATED,
                 Json(json!({
                     "message": "Field has been added!",
+                    "data": FieldResponse {
+                        unique_id: generated_id,
+                        title: title,
+                        field_type: field_type,
+                        position: 0,
+                        settings: None,
+                        is_system: false,
+                    }
                 })),
             )
         }
