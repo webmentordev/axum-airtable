@@ -53,5 +53,10 @@ a {
 }
 
 .records td {
-    @apply min-w-55 w-55 text-start py-2 px-3 border border-gray-300 text-[12px];
+    @apply min-w-55 w-55 text-start border border-gray-300 text-[12px];
+}
+
+.records .cell,
+.records input {
+    @apply py-2 px-3 outline-0;
 }

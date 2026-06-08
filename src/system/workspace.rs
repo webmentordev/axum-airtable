@@ -128,7 +128,6 @@ pub async fn create_workspace(
     };
 
     let system_fields = vec![
-        ("Name", "text"),
         ("Created At", "created_at"),
         ("Updated At", "updated_at"),
     ];

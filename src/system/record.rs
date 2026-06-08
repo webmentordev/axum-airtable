@@ -18,6 +18,11 @@ pub struct Pagination {
     page: i64,
 }
 
+#[derive(Deserialize)]
+pub struct FormValue {
+    value: String, // Will add file upload support in the future
+}
+
 #[derive(sqlx::FromRow)]
 struct FieldRow {
     unique_id: String,
@@ -384,6 +389,109 @@ pub async fn create_system_record(
             "message": "New record inserted!"
         })),
     )
+}
+
+pub async fn update_system_record(
+    AuthUser(user_id): AuthUser,
+    State(state): State<AppState>,
+    Path((workspace_uid, record_uid, field_uid)): Path<(String, String, String)>,
+    Json(payload): Json<FormValue>,
+) -> impl IntoResponse {
+    let app_uid = match sqlx::query_scalar::<_, String>(
+        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
+    )
+    .bind(&workspace_uid)
+    .fetch_one(&state.pool)
+    .await
+    {
+        Ok(row) => row,
+        Err(_) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": "Fields not found."
+                })),
+            );
+        }
+    };
+    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+        .bind(&user_id)
+        .bind(&app_uid)
+        .fetch_one(&state.pool)
+        .await
+    {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({ "message": "Access denied" })),
+        );
+    }
+
+    let field =
+        match sqlx::query_scalar::<_, String>("SELECT field_type FROM fields WHERE unique_id = $1")
+            .bind(&field_uid)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(ffield) => ffield,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({ "message": "field not found!" })),
+                );
+            }
+        };
+
+    let sql_query = match field.as_str() {
+        "text" => format!("UPDATE cells SET value_text = $1 WHERE row_id = $2 AND field_id = $3"),
+        "email" | "phone" => {
+            format!("UPDATE cells SET value_text = $1 WHERE row_id = $2 AND field_id = $3")
+        }
+        "number" | "currency" => {
+            format!("UPDATE cells SET value_number = $1 WHERE row_id = $2 AND field_id = $3")
+        }
+        "checkbox" => {
+            format!("UPDATE cells SET value_boolean = $1 WHERE row_id = $2 AND field_id = $3")
+        }
+        "date" => format!("UPDATE cells SET value_date = $1 WHERE row_id = $2 AND field_id = $3"),
+        "created_at" | "updated_at" => {
+            format!("UPDATE cells SET value_date = $1 WHERE row_id = $2 AND field_id = $3")
+        }
+        _ => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Invalid field type"
+                })),
+            );
+        }
+    };
+
+    match sqlx::query(&sql_query)
+        .bind(&payload.value)
+        .bind(&record_uid)
+        .bind(&field_uid)
+        .execute(&state.pool)
+        .await
+    {
+        Ok(result) if result.rows_affected() > 0 => (
+            StatusCode::OK,
+            Json(json!({
+                "message": "Record saved!",
+            })),
+        ),
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "message": "Record not found."
+            })),
+        ),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Internal server error"
+            })),
+        ),
+    }
 }
 
 pub async fn delete_system_record(

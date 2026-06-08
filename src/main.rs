@@ -72,6 +72,10 @@ async fn main() {
         .route(
             "/{workspace_uid}/{record_uid}",
             delete(delete_system_record),
+        )
+        .route(
+            "/{workspace_uid}/{record_uid}/{field_uid}",
+            patch(update_system_record),
         );
 
     let field_routes = Router::new()

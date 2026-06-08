@@ -18,9 +18,9 @@
                     <button @click="setting = !setting"><img
                             src="https://api.iconify.design/material-symbols-light:settings.svg?color=%23ffffff"
                             width="20px"></button>
-                    <div class="w-40 py-2 px-3 bg-white border border-gray-200 rounded-lg absolute top-8 right-0 z-20"
+                    <div class="flex flex-col w-40 py-2 px-3 bg-white border border-gray-200 rounded-lg absolute top-8 right-0 z-20"
                         v-show="setting">
-                        <strong class="w-full mb-2 inline-block">Actions</strong>
+                        <strong class="mb-2 pb-1 border-b border-gray-200">Action</strong>
                         <form @submit.prevent="delete_app" class="">
                             <Button v-if="!processing" type="submit" text="Delete" class="bg-red-500" />
                         </form>
@@ -70,10 +70,10 @@
                 </thead>
                 <tbody>
                     <tr v-if="records.length > 0" v-for="(record, index) in records" :key="record.id">
-                        <td>{{ index + 1 }}</td>
-                        <td>{{ record.id }}</td>
+                        <td><span class="cell">{{ index + 1 }}</span></td>
+                        <td><span class="cell">{{ record.id }}</span></td>
                         <td v-for="field in fields" :key="field.id">
-                            <AppCell :record="record" :field="field" />
+                            <AppCell :record="record" :field="field" :workspace="active_workspace" />
                         </td>
                         <td>
                             <button class="w-fit flex items-center justify-center rounded-lg bg-red-500 p-1 px-2 m-auto"
