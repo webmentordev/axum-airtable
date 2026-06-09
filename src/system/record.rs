@@ -397,23 +397,23 @@ pub async fn update_system_record(
     Path((workspace_uid, record_uid, field_uid)): Path<(String, String, String)>,
     Json(payload): Json<FormValue>,
 ) -> impl IntoResponse {
-    let app_uid = match sqlx::query_scalar::<_, String>(
-        "SELECT app_id, id FROM workspaces WHERE unique_id = $1",
-    )
-    .bind(&workspace_uid)
-    .fetch_one(&state.pool)
-    .await
-    {
-        Ok(row) => row,
-        Err(_) => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "message": "Fields not found."
-                })),
-            );
-        }
-    };
+    let app_uid =
+        match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
+            .bind(&workspace_uid)
+            .fetch_one(&state.pool)
+            .await
+        {
+            Ok(row) => row,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "Workspace not found."
+                    })),
+                );
+            }
+        };
+
     if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
@@ -436,62 +436,196 @@ pub async fn update_system_record(
             Err(_) => {
                 return (
                     StatusCode::NOT_FOUND,
-                    Json(json!({ "message": "field not found!" })),
+                    Json(json!({ "message": "Field not found!" })),
                 );
             }
         };
 
-    let sql_query = match field.as_str() {
-        "text" => format!("UPDATE cells SET value_text = $1 WHERE row_id = $2 AND field_id = $3"),
-        "email" | "phone" => {
-            format!("UPDATE cells SET value_text = $1 WHERE row_id = $2 AND field_id = $3")
+    match field.to_lowercase().as_str() {
+        "text" | "email" | "phone" => {
+            match sqlx::query(
+                "UPDATE cells SET value_text = $1 WHERE row_id = $2 AND field_id = $3",
+            )
+            .bind(&payload.value)
+            .bind(&record_uid)
+            .bind(&field_uid)
+            .execute(&state.pool)
+            .await
+            {
+                Ok(result) if result.rows_affected() > 0 => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "message": "Record saved!",
+                        })),
+                    );
+                }
+                Ok(_) => {
+                    if let Err(_) = sqlx::query(
+                        "INSERT INTO cells (row_id, field_id, value_text) VALUES ($1, $2, $3)",
+                    )
+                    .bind(&record_uid)
+                    .bind(&field_uid)
+                    .bind(&payload.value)
+                    .execute(&state.pool)
+                    .await
+                    {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "message": "Can not insert data" })),
+                        );
+                    }
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "message": "Can not insert data" })),
+                    );
+                }
+            }
         }
         "number" | "currency" => {
-            format!("UPDATE cells SET value_number = $1 WHERE row_id = $2 AND field_id = $3")
+            match sqlx::query(
+                "UPDATE cells SET value_number = $1 WHERE row_id = $2 AND field_id = $3",
+            )
+            .bind(&payload.value)
+            .bind(&record_uid)
+            .bind(&field_uid)
+            .execute(&state.pool)
+            .await
+            {
+                Ok(result) if result.rows_affected() > 0 => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "message": "Record saved!",
+                        })),
+                    );
+                }
+                Ok(_) => {
+                    if let Err(_) = sqlx::query(
+                        "INSERT INTO cells (row_id, field_id, value_number) VALUES ($1, $2, $3)",
+                    )
+                    .bind(&record_uid)
+                    .bind(&field_uid)
+                    .bind(&payload.value)
+                    .execute(&state.pool)
+                    .await
+                    {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "message": "Can not insert data" })),
+                        );
+                    }
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "message": "Can not insert data" })),
+                    );
+                }
+            }
         }
         "checkbox" => {
-            format!("UPDATE cells SET value_boolean = $1 WHERE row_id = $2 AND field_id = $3")
+            match sqlx::query(
+                "UPDATE cells SET value_boolean = $1 WHERE row_id = $2 AND field_id = $3",
+            )
+            .bind(&payload.value)
+            .bind(&record_uid)
+            .bind(&field_uid)
+            .execute(&state.pool)
+            .await
+            {
+                Ok(result) if result.rows_affected() > 0 => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "message": "Record saved!",
+                        })),
+                    );
+                }
+                Ok(_) => {
+                    if let Err(_) = sqlx::query(
+                        "INSERT INTO cells (row_id, field_id, value_boolean) VALUES ($1, $2, $3)",
+                    )
+                    .bind(&record_uid)
+                    .bind(&field_uid)
+                    .bind(&payload.value)
+                    .execute(&state.pool)
+                    .await
+                    {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "message": "Can not insert data" })),
+                        );
+                    }
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "message": "Can not insert data" })),
+                    );
+                }
+            }
         }
-        "date" => format!("UPDATE cells SET value_date = $1 WHERE row_id = $2 AND field_id = $3"),
-        "created_at" | "updated_at" => {
-            format!("UPDATE cells SET value_date = $1 WHERE row_id = $2 AND field_id = $3")
+        "date" | "created_at" | "updated_at" => {
+            match sqlx::query(
+                "UPDATE cells SET value_date = $1 WHERE row_id = $2 AND field_id = $3",
+            )
+            .bind(&payload.value)
+            .bind(&record_uid)
+            .bind(&field_uid)
+            .execute(&state.pool)
+            .await
+            {
+                Ok(result) if result.rows_affected() > 0 => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "message": "Record saved!",
+                        })),
+                    );
+                }
+                Ok(_) => {
+                    if let Err(_) = sqlx::query(
+                        "INSERT INTO cells (row_id, field_id, value_date) VALUES ($1, $2, $3)",
+                    )
+                    .bind(&record_uid)
+                    .bind(&field_uid)
+                    .bind(&payload.value)
+                    .execute(&state.pool)
+                    .await
+                    {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({ "message": "Can not insert data" })),
+                        );
+                    }
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "message": "Can not insert data" })),
+                    );
+                }
+            }
         }
         _ => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({
-                    "message": "Invalid field type"
+                    "message": "Unknown data type"
                 })),
             );
         }
-    };
-
-    match sqlx::query(&sql_query)
-        .bind(&payload.value)
-        .bind(&record_uid)
-        .bind(&field_uid)
-        .execute(&state.pool)
-        .await
-    {
-        Ok(result) if result.rows_affected() > 0 => (
-            StatusCode::OK,
-            Json(json!({
-                "message": "Record saved!",
-            })),
-        ),
-        Ok(_) => (
-            StatusCode::NOT_FOUND,
-            Json(json!({
-                "message": "Record not found."
-            })),
-        ),
-        Err(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "message": "Internal server error"
-            })),
-        ),
     }
+
+    (
+        StatusCode::OK,
+        Json(json!({
+            "message": "Record saved!",
+        })),
+    )
 }
 
 pub async fn delete_system_record(

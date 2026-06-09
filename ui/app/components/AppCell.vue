@@ -1,6 +1,6 @@
 <template>
     <div v-if="!field.is_system">
-        <AlertsSuccess v-if="message" :message="message" @close="message = ''" />
+        <AlertsSaved v-if="saved" />
         <input type="text" v-model="field_value" @keydown="on_input" @blur="update_record()" class="w-full h-full"
             required>
     </div>
@@ -17,9 +17,9 @@ const props = defineProps({
 });
 
 const unsaved = ref(false);
+const saved = ref(false);
 const field_value = ref(props.record[props.field.title] || "");
 const processing = ref(false);
-const message = ref(null);
 const errors = ref({
     count: 0
 });
@@ -42,7 +42,10 @@ async function update_record() {
                 field_value: field_value.value
             }
         });
-        message.value = data.message;
+        saved.value = true;
+        setTimeout(() => {
+            saved.value = false;
+        }, 2000);
     } catch (e) {
         errors.value.message = e.statusMessage || 'Failed to update record.';
     } finally {
