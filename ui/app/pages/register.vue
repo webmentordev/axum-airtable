@@ -65,12 +65,6 @@ const confirm_password = ref("");
 const processing = ref(false);
 const message = ref(false);
 const errors = ref({
-    name: null,
-    username: null,
-    email: null,
-    password: null,
-    confirm_password: null,
-    message: null,
     count: 0
 });
 
@@ -95,7 +89,7 @@ async function login() {
         errors.value.count += 1;
     }
     if (confirm_password.value == "") {
-        errors.value.password = "Password confirmation is required";
+        errors.value.confirm_password = "Password confirmation is required";
         errors.value.count += 1;
     }
     if (password.value != confirm_password.value) {
@@ -119,6 +113,7 @@ async function login() {
         });
         if (data.message) {
             message.value = data.message;
+            reset_values();
         }
     } catch (e) {
         errors.value.message = e.statusMessage || 'Something went wrong!';
@@ -129,12 +124,6 @@ async function login() {
 
 function reset_errors() {
     errors.value = {
-        name: null,
-        username: null,
-        email: null,
-        password: null,
-        confirm_password: null,
-        message: null,
         count: 0
     };
 }

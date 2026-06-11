@@ -1,14 +1,16 @@
 use crate::AppState;
 
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
     Json,
     extract::{FromRequestParts, State},
     http::{StatusCode, request::Parts},
     response::IntoResponse,
 };
-use bcrypt::{hash, verify};
 use chrono::Utc;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, Row};
@@ -107,9 +109,24 @@ pub async fn login_handler(
     };
 
     let id: i32 = row.get("id");
-    let hashed_password = row.get("password");
+    let hashed_password: String = row.get("password");
 
-    let is_valid = verify(&password, hashed_password).unwrap_or(false);
+    let argon2 = Argon2::default();
+    let password_hash = match PasswordHash::new(&hashed_password) {
+        Ok(hash) => hash,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Internal server error"
+                })),
+            );
+        }
+    };
+
+    let is_valid = argon2
+        .verify_password(password.as_bytes(), &password_hash)
+        .is_ok();
     if !is_valid {
         return (
             StatusCode::BAD_REQUEST,
@@ -218,8 +235,11 @@ pub async fn signup_handler(
             })),
         );
     }
-    let hashed_password = match hash(password, 4) {
-        Ok(password) => password,
+
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let hashed_password = match argon2.hash_password(password.as_bytes(), &salt) {
+        Ok(hash) => hash.to_string(),
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,

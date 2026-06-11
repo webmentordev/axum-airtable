@@ -53,7 +53,8 @@
                 </div>
             </div>
         </div>
-        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-x-auto">
+        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-x-auto"
+            v-show="active_workspace != ''">
             <table class="table-auto records max-w-fit">
                 <thead>
                     <tr>
