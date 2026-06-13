@@ -81,7 +81,14 @@ pub async fn add_member(
         );
     }
 
-    let _ = tx.commit().await;
+    if let Err(_) = tx.commit().await {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Failed to commit transaction"
+            })),
+        );
+    }
 
     (
         StatusCode::OK,
