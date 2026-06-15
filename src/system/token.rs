@@ -32,44 +32,46 @@ impl TokenResponse {
         let end = &rest[rest.len() - 5..];
         format!("{}********{}", start, end)
     }
-    pub fn with_masked_token(mut self) -> Self {
-        self.token = Self::mask_token(&self.token);
-        self
-    }
 }
 
 pub async fn get_tokens(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
-    Path(app_id): Path<String>,
 ) -> impl IntoResponse {
-    if !sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
-        .bind(&user_id)
-        .bind(&app_id)
-        .fetch_one(&state.pool)
-        .await
-        .is_ok()
-    {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(json!({ "message": "Access denied" })),
-        );
-    }
-
-    match sqlx::query_as::<_, TokenResponse>(
-        "SELECT unique_id, token, created_at FROM tokens WHERE app_id = $1",
+    match sqlx::query_as::<_, (String, String, String, NaiveDateTime)>(
+        "SELECT a.title, t.unique_id, t.token, t.created_at
+         FROM tokens t
+         JOIN apps a ON t.app_id = a.unique_id
+         WHERE a.owner_id = $1 OR a.unique_id IN (
+            SELECT app_id FROM members WHERE member_id = $1
+         )
+         ORDER BY t.created_at DESC",
     )
-    .bind(&app_id)
+    .bind(&user_id)
     .fetch_all(&state.pool)
     .await
     {
-        Ok(records) => (
-            StatusCode::OK,
-            Json(json!({
-                "message": "Tokens have been fetched!",
-                "data": records.into_iter().map(|r| r.with_masked_token()).collect::<Vec<_>>()
-            })),
-        ),
+        Ok(records) => {
+            let data: Vec<_> = records
+                .into_iter()
+                .map(|(title, unique_id, token, created_at)| {
+                    json!({
+                        "title": title,
+                        "unique_id": unique_id,
+                        "token": TokenResponse::mask_token(&token),
+                        "created_at": created_at
+                    })
+                })
+                .collect();
+
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "message": "Tokens have been fetched!",
+                    "data": data
+                })),
+            )
+        }
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({

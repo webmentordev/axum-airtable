@@ -59,10 +59,9 @@ async fn main() {
             "/{app_uid}/{workspace_uid}",
             patch(update_workspace).delete(delete_workspace),
         );
-    let token_routes = Router::new().route(
-        "/{app_id}",
-        get(get_tokens).post(create_token).delete(delete_token),
-    );
+    let token_routes = Router::new()
+        .route("/get", get(get_tokens))
+        .route("/token/{app_id}", post(create_token).delete(delete_token));
 
     let record_routes = Router::new()
         .route(

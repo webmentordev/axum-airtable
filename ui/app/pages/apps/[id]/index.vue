@@ -21,6 +21,7 @@
                     <div class="flex flex-col w-40 py-2 px-3 bg-white border border-gray-200 rounded-lg absolute top-8 right-0 z-20"
                         v-show="setting">
                         <strong class="mb-2 pb-1 border-b border-gray-200">Action</strong>
+                        <NuxtLink class="mb-1 pb-1" to="/tokens">Tokens</NuxtLink>
                         <form @submit.prevent="delete_app" class="">
                             <Button v-if="!processing" type="submit" text="Delete" class="bg-red-500" />
                         </form>
