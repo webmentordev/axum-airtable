@@ -18,28 +18,19 @@ pub struct TokenRecord {
     pub token: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, sqlx::FromRow)]
-pub struct TokenResponse {
-    pub unique_id: String,
-    pub token: String,
-    pub created_at: NaiveDateTime,
-}
-
-impl TokenResponse {
-    pub fn mask_token(token: &str) -> String {
-        let rest = &token[0..];
-        let start = &rest[..6];
-        let end = &rest[rest.len() - 5..];
-        format!("{}********{}", start, end)
-    }
+fn mask_token(token: &str) -> String {
+    let rest = &token[0..];
+    let start = &rest[..8];
+    let end = &rest[rest.len() - 8..];
+    format!("{}*******************************{}", start, end)
 }
 
 pub async fn get_tokens(
     AuthUser(user_id): AuthUser,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, (String, String, String, NaiveDateTime)>(
-        "SELECT a.title, t.unique_id, t.token, t.created_at
+    match sqlx::query_as::<_, (String, String, String, String, NaiveDateTime)>(
+        "SELECT a.title, t.unique_id, t.token, a.unique_id, t.created_at
          FROM tokens t
          JOIN apps a ON t.app_id = a.unique_id
          WHERE a.owner_id = $1 OR a.unique_id IN (
@@ -54,11 +45,12 @@ pub async fn get_tokens(
         Ok(records) => {
             let data: Vec<_> = records
                 .into_iter()
-                .map(|(title, unique_id, token, created_at)| {
+                .map(|(title, unique_id, token, app_id, created_at)| {
                     json!({
                         "title": title,
                         "unique_id": unique_id,
-                        "token": TokenResponse::mask_token(&token),
+                        "app_id": app_id,
+                        "token": mask_token(&token),
                         "created_at": created_at
                     })
                 })

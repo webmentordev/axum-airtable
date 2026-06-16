@@ -54,7 +54,7 @@
                 </div>
             </div>
         </div>
-        <div class="gap-6 flex flex-col h-full bg-gray-100 border-b border-slate-200 overflow-x-auto"
+        <div class="gap-6 flex flex-col h-full bg-gray-50 border-b border-slate-100 overflow-x-auto"
             v-show="active_workspace != ''">
             <table class="table-auto records max-w-fit">
                 <thead>
@@ -71,13 +71,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="records.length > 0" v-for="(record, index) in records" :key="record.id">
-                        <td><span class="cell">{{ index + 1 }}</span></td>
-                        <td><span class="cell">{{ record.id }}</span></td>
-                        <td v-for="field in fields" :key="field.id">
+                    <tr class="hover:bg-gray-100" v-if="records.length > 0" v-for="(record, index) in records"
+                        :key="record.id">
+                        <td class="outer-cell"><span class="cell">{{ index + 1 }}</span></td>
+                        <td class="outer-cell"><span class="cell">{{ record.id }}</span></td>
+                        <td class="outer-cell" v-for="field in fields" :key="field.id">
                             <AppCell :record="record" :field="field" :workspace="active_workspace" />
                         </td>
-                        <td>
+                        <td class="outer-cell">
                             <button class="w-fit flex items-center justify-center rounded-lg bg-red-500 p-1 px-2 m-auto"
                                 @click="delete_record(record.id)">
                                 <span class="text-white mr-1">Delete</span>

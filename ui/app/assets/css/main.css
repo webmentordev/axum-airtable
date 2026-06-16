@@ -29,10 +29,6 @@ strong {
     font-family: "Space Mono", monospace;
 }
 
-p {
-    @apply text-para-light;
-}
-
 
 .error {
     @apply text-red-500;
@@ -49,14 +45,18 @@ a {
 }
 
 .records th {
-    @apply min-w-55 w-55 text-start py-1 px-3 border-x border-gray-300 text-[12px];
+    @apply min-w-55 w-55 text-start py-1 px-3 border-x border-gray-200 text-[12px];
 }
 
 .records td {
-    @apply min-w-55 w-55 text-start border border-gray-300 text-[12px];
+    @apply min-w-55 w-55 text-start border border-gray-200 text-[12px];
 }
 
 .records .cell,
 .records input {
     @apply py-2 px-3 outline-0;
+}
+
+.records .outer-cell:hover {
+    @apply border border-gray-300;
 }

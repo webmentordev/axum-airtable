@@ -8,13 +8,17 @@ export default defineEventHandler(async (event) => {
             "Authorization": `Bearer ${body.token}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
+        },
+        body: {
+          unique_id: body.token_id
         }
     });
     return data;
   } catch (e) {
+    console.log(e);
     throw createError({
       statusCode: e.response?.status || 500,
-      statusMessage: e.data.message || 'token delete failed'
+      statusMessage: e.data.message || 'Token delete failed'
     });
   }
 });
