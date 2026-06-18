@@ -73,12 +73,12 @@
                 <tbody>
                     <tr class="hover:bg-gray-100" v-if="records.length > 0" v-for="(record, index) in records"
                         :key="record.id">
-                        <td class="outer-cell"><span class="cell">{{ index + 1 }}</span></td>
-                        <td class="outer-cell"><span class="cell">{{ record.id }}</span></td>
-                        <td class="outer-cell" v-for="field in fields" :key="field.id">
+                        <td><span class="cell">{{ index + 1 }}</span></td>
+                        <td><span class="cell">{{ record.id }}</span></td>
+                        <td v-for="field in fields" :key="field.id">
                             <AppCell :record="record" :field="field" :workspace="active_workspace" />
                         </td>
-                        <td class="outer-cell">
+                        <td>
                             <button class="w-fit flex items-center justify-center rounded-lg bg-red-500 p-1 px-2 m-auto"
                                 @click="delete_record(record.id)">
                                 <span class="text-white mr-1">Delete</span>

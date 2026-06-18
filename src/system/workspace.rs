@@ -128,8 +128,8 @@ pub async fn create_workspace(
     };
 
     let system_fields = vec![
-        ("Created At", "created_at"),
-        ("Updated At", "updated_at"),
+        ("Created At (Auto)", "created_at"),
+        ("Updated At (Auto)", "updated_at"),
     ];
 
     for (index, (title, field_type)) in system_fields.iter().enumerate() {

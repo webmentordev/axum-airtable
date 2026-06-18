@@ -12,8 +12,8 @@ export default defineEventHandler(async (event) => {
     if (data.records && data.records.length > 0) {
       data.records = data.records.map(record => ({
         ...record,
-        "Created At": new Date(record["Created At"]).toLocaleString() + ' UTC',
-        "Updated At": new Date(record["Updated At"]).toLocaleString() + ' UTC'
+        "Created At (Auto)": new Date(record["Created At (Auto)"]).toLocaleString() + ' UTC',
+        "Updated At (Auto)": new Date(record["updated_at"]).toLocaleString() + ' UTC'
       }));
     }
     return data;

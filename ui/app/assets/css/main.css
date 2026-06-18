@@ -56,7 +56,3 @@ a {
 .records input {
     @apply py-2 px-3 outline-0;
 }
-
-.records .outer-cell:hover {
-    @apply border border-gray-300;
-}

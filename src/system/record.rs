@@ -44,6 +44,7 @@ struct CellRow {
     value_boolean: Option<bool>,
     value_date: Option<NaiveDateTime>,
     value_json: Option<serde_json::Value>,
+    updated_at: Option<NaiveDateTime>,
 }
 
 pub async fn get_system_records(
@@ -115,6 +116,7 @@ pub async fn get_system_records(
         "SELECT
          r.unique_id  AS row_id,
          r.created_at AS row_created_at,
+         r.updated_at AS updated_at,
          f.unique_id  AS field_id,
          f.field_type,
          c.value_text,
@@ -143,7 +145,7 @@ pub async fn get_system_records(
     for cell in raw {
         let entry = row_map
             .entry(cell.row_id.clone())
-            .or_insert_with(|| json!({ "id": cell.row_id }));
+            .or_insert_with(|| json!({ "id": cell.row_id, "updated_at": cell.updated_at }));
 
         if let (Some(field_id), Some(field_type)) = (&cell.field_id, &cell.field_type) {
             let col_name = fields
@@ -383,15 +385,29 @@ pub async fn update_system_record(
         }
     };
 
+    if sqlx::query("UPDATE rows SET updated_at = $1 WHERE unique_id = $2")
+        .bind(chrono::Utc::now().naive_utc())
+        .bind(&record_uid)
+        .execute(&state.pool)
+        .await
+        .is_err()
+    {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Can not update record!"})),
+        );
+    }
+
     let column_name = field_type.column_name();
 
     let update_query = format!(
-        "UPDATE cells SET {} = $1 WHERE row_id = $2 AND field_id = $3",
+        "UPDATE cells SET {} = $1, updated_at = $2 WHERE row_id = $3 AND field_id = $4",
         column_name
     );
 
     match sqlx::query(&update_query)
         .bind(&payload.value)
+        .bind(chrono::Utc::now().naive_utc())
         .bind(&record_uid)
         .bind(&field_uid)
         .execute(&state.pool)
