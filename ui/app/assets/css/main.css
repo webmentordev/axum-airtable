@@ -53,6 +53,6 @@ a {
 }
 
 .records .cell,
-.records input {
-    @apply py-2 px-3 outline-0;
+.records .recinput {
+    @apply py-1 px-3 outline-0;
 }

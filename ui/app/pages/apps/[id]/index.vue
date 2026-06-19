@@ -73,8 +73,8 @@
                 <tbody>
                     <tr class="hover:bg-gray-100" v-if="records.length > 0" v-for="(record, index) in records"
                         :key="record.id">
-                        <td><span class="cell">{{ index + 1 }}</span></td>
-                        <td><span class="cell">{{ record.id }}</span></td>
+                        <td><span class="cell inline-block">{{ index + 1 }}</span></td>
+                        <td><span class="cell inline-block">{{ record.id }}</span></td>
                         <td v-for="field in fields" :key="field.id">
                             <AppCell :record="record" :field="field" :workspace="active_workspace" />
                         </td>

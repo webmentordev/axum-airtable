@@ -16,35 +16,35 @@ use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct Pagination {
-    page: i64,
+    pub page: i64,
 }
 
 #[derive(Deserialize)]
 pub struct FormValue {
-    value: String, // Will add file upload support in the future
+    pub value: String, // Will add file upload support in the future
 }
 
 #[derive(sqlx::FromRow)]
-struct FieldRow {
-    unique_id: String,
-    title: String,
-    field_type: String,
-    position: i32,
-    is_system: bool,
-    settings: Option<serde_json::Value>,
+pub struct FieldRow {
+    pub unique_id: String,
+    pub title: String,
+    pub field_type: String,
+    pub position: i32,
+    pub is_system: bool,
+    pub settings: Option<serde_json::Value>,
 }
 
 #[derive(sqlx::FromRow)]
-struct CellRow {
-    row_id: String,
-    field_id: Option<String>,
-    field_type: Option<String>,
-    value_text: Option<String>,
-    value_number: Option<f64>,
-    value_boolean: Option<bool>,
-    value_date: Option<NaiveDateTime>,
-    value_json: Option<serde_json::Value>,
-    updated_at: Option<NaiveDateTime>,
+pub struct CellRow {
+    pub row_id: String,
+    pub field_id: Option<String>,
+    pub field_type: Option<String>,
+    pub value_text: Option<String>,
+    pub value_number: Option<f64>,
+    pub value_boolean: Option<bool>,
+    pub value_date: Option<NaiveDateTime>,
+    pub value_json: Option<serde_json::Value>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 pub async fn get_system_records(
@@ -179,7 +179,7 @@ pub async fn get_system_records(
     )
 }
 
-fn resolve_cell_value(field_type: &str, cell: &CellRow) -> serde_json::Value {
+pub fn resolve_cell_value(field_type: &str, cell: &CellRow) -> serde_json::Value {
     match field_type {
         "text" | "email" | "phone" => json!(cell.value_text),
         "number" | "currency" => json!(cell.value_number),

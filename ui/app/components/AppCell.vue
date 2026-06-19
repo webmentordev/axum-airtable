@@ -1,8 +1,8 @@
 <template>
     <div v-if="!field.is_system">
         <AlertsSaved v-if="saved" />
-        <input type="text" v-model="field_value" @keydown="on_input" @blur="update_record()" class="w-full h-full"
-            required>
+        <input type="text" v-model="field_value" @keydown="on_input" @blur="update_record()"
+            class="recinput w-full h-full" required>
     </div>
     <span v-else class="cursor-pointer w-full h-full cell">{{ field_value }}</span>
 </template>

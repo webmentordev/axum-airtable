@@ -20,7 +20,7 @@
                     </div>
 
                     <NuxtLink to="/forgot-password"
-                        class="text-para-light inline-block underline text-sm ml-1 mt-3 hover:text-main">Forgotten
+                        class="text-para-light inline-block underline text-sm ml-1 mt-3 mb-3 hover:text-main">Forgotten
                         password?</NuxtLink>
 
                     <Button v-if="!processing" type="submit" text="Login" />
