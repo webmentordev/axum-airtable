@@ -157,10 +157,109 @@ pub async fn get_records(
     )
 }
 
-pub async fn get_record(Path(id): Path<String>) -> Json<Response> {
-    Json(Response {
-        message: format!("Response from GET a RecordID {}", id),
-    })
+pub async fn get_record(
+    VerifyToken(api_token): VerifyToken,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let row = match sqlx::query_as::<_, (i64, i32, String)>(
+        "SELECT r.id, r.workspace_id, w.app_id
+     FROM rows r
+     JOIN workspaces w ON w.id = r.workspace_id
+     WHERE r.unique_id = $1",
+    )
+    .bind(&id)
+    .fetch_one(&state.pool)
+    .await
+    {
+        Ok(row) => row,
+        Err(_) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({ "message": "Record not found." })),
+            );
+        }
+    };
+
+    let (_, workspace_id, app_id) = row;
+
+    if sqlx::query("SELECT app_id FROM tokens WHERE app_id = $1 AND token = $2")
+        .bind(&app_id)
+        .bind(&api_token)
+        .fetch_one(&state.pool)
+        .await
+        .is_err()
+    {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "message": "Unauthorized token." })),
+        );
+    }
+
+    let fields = sqlx::query_as::<_, FieldRow>(
+        "SELECT unique_id, title, field_type, position, is_system, settings
+         FROM fields
+         WHERE workspace_id = $1
+         ORDER BY position ASC",
+    )
+    .bind(&workspace_id)
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
+
+    let raw = sqlx::query_as::<_, CellRow>(
+        "SELECT
+             r.unique_id  AS row_id,
+             r.created_at AS row_created_at,
+             r.updated_at AS updated_at,
+             f.unique_id  AS field_id,
+             f.field_type,
+             c.value_text,
+             c.value_number,
+             c.value_boolean,
+             c.value_date,
+             c.value_json
+         FROM rows r
+         LEFT JOIN cells c ON c.row_id = r.unique_id
+         LEFT JOIN fields f ON f.unique_id = c.field_id
+         WHERE r.unique_id = $1
+         ORDER BY f.position ASC",
+    )
+    .bind(&id)
+    .fetch_all(&state.pool)
+    .await
+    .unwrap_or_default();
+
+    let mut row_map: IndexMap<String, serde_json::Value> = IndexMap::new();
+
+    for cell in raw {
+        let entry = row_map
+            .entry(cell.row_id.clone())
+            .or_insert_with(|| json!({ "id": cell.row_id, "updated_at": cell.updated_at }));
+        if let (Some(field_id), Some(field_type)) = (&cell.field_id, &cell.field_type) {
+            if matches!(field_type.as_str(), | "updated_at") {
+                continue;
+            }
+            let col_name = fields
+                .iter()
+                .find(|f| &f.unique_id == field_id)
+                .map(|f| f.title.clone())
+                .unwrap_or_else(|| field_id.clone());
+
+            let value = resolve_cell_value(&field_type, &cell);
+            entry[col_name] = value;
+        }
+    }
+
+    let record = row_map.into_values().next();
+
+    match record {
+        Some(rec) => (StatusCode::OK, Json(json!({ "record": rec }))),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "message": "Record not found." })),
+        ),
+    }
 }
 
 pub async fn create_record(Path((app, workspace)): Path<(String, String)>) -> Json<Response> {
