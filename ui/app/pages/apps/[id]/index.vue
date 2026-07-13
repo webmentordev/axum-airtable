@@ -274,6 +274,7 @@ async function create_record() {
             }
         });
         message.value = data.message;
+        records.value.push(data.record);
     } catch (e) {
         errors.value.message = e.statusMessage || 'Failed to create record.';
     } finally {

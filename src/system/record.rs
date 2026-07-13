@@ -21,7 +21,7 @@ pub struct Pagination {
 
 #[derive(Deserialize)]
 pub struct FormValue {
-    pub value: String, // Will add file upload support in the future
+    pub value: String,
 }
 
 #[derive(sqlx::FromRow)]
@@ -274,6 +274,7 @@ pub async fn create_system_record(
             );
         }
     };
+
     for (field_uid, field_type_str) in fields {
         let field_type = match FieldType::from_str(&field_type_str) {
             Ok(ft) => ft,
@@ -319,10 +320,79 @@ pub async fn create_system_record(
         );
     }
 
+    let fields_data = match sqlx::query_as::<_, FieldRow>(
+        "SELECT unique_id, title, field_type, position, is_system, settings
+         FROM fields
+         WHERE workspace_id = $1
+         ORDER BY position ASC",
+    )
+    .bind(workspace_id)
+    .fetch_all(&state.pool)
+    .await
+    {
+        Ok(f) => f,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
+    let raw = match sqlx::query_as::<_, CellRow>(
+        "SELECT
+         r.unique_id  AS row_id,
+         r.updated_at AS updated_at,
+         f.unique_id  AS field_id,
+         f.field_type,
+         c.value_text,
+         c.value_number,
+         c.value_boolean,
+         c.value_date,
+         c.value_json
+         FROM rows r
+         LEFT JOIN cells c ON c.row_id = r.unique_id
+         LEFT JOIN fields f ON f.unique_id = c.field_id
+         WHERE r.unique_id = $1
+         ORDER BY f.position ASC",
+    )
+    .bind(&row_uid)
+    .fetch_all(&state.pool)
+    .await
+    {
+        Ok(r) => r,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "message": "Something went wrong!" })),
+            );
+        }
+    };
+
+    let mut record = json!({ "id": &row_uid, "updated_at": null });
+
+    for cell in raw {
+        if let Some(updated_at) = cell.updated_at {
+            record["updated_at"] = json!(updated_at.to_string());
+        }
+
+        if let (Some(field_id), Some(field_type)) = (&cell.field_id, &cell.field_type) {
+            let col_name = fields_data
+                .iter()
+                .find(|f| &f.unique_id == field_id)
+                .map(|f| f.title.clone())
+                .unwrap_or_else(|| field_id.clone());
+
+            let value = resolve_cell_value(&field_type, &cell);
+            record[col_name] = value;
+        }
+    }
+
     (
         StatusCode::OK,
         Json(json!({
-            "message": "New record inserted!"
+            "message": "Record has been created!",
+            "record": record
         })),
     )
 }
