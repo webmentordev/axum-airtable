@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
             position: 0
         }
     });
+    data.id = data.data.unique_id;
     return data;
   } catch (e) {
     throw createError({

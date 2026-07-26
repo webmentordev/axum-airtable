@@ -1,3 +1,5 @@
+Renamed: Windtable
+----------------------------
 * Find a better way to handle Authentication token validation (JWT are stateless so we can not invalidate them)
 X Use argon2 for password validation, bcrypt is slow with DEFAULT_COST (1.5sec) which is slow underload (Aragon is ~200MS, Bcrypt was ~9MS)
 * Cover edge cases in the field update

@@ -403,6 +403,7 @@ pub async fn update_system_record(
     Path((workspace_uid, record_uid, field_uid)): Path<(String, String, String)>,
     Json(payload): Json<FormValue>,
 ) -> impl IntoResponse {
+    println!("{} - {} - {}", &workspace_uid, &record_uid, &field_uid);
     let app_uid =
         match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
             .bind(&workspace_uid)

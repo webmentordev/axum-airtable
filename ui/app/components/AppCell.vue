@@ -31,6 +31,7 @@ function on_input() {
 async function update_record() {
     if (!unsaved.value) return;
     processing.value = true;
+
     try {
         const data = await $fetch("/api/records/update", {
             method: "POST",
@@ -38,7 +39,7 @@ async function update_record() {
                 token: getToken(),
                 workspace: props.workspace,
                 record: props.record.id,
-                field: props.field.id,
+                field: props.field.id ? props.field.id : props.field.unique_id,
                 field_value: field_value.value
             }
         });

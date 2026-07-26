@@ -1,5 +1,5 @@
 [package]
-name = "axum_airtable"
+name = "windtable"
 version = "0.1.0"
 edition = "2024"
 
@@ -21,6 +21,10 @@ argon2 = "0.5"
 rand_core = "0.6"
 nanoid = "0.5"
 indexmap = "2.14"
+
+[[bin]]
+name = "windtable"
+path = "src/main.rs"
 
 
 [profile.release]
