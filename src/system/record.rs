@@ -105,7 +105,13 @@ pub async fn get_system_records(
         "SELECT unique_id, title, field_type, position, is_system, settings
      FROM fields
      WHERE workspace_id = $1
-     ORDER BY position ASC",
+     ORDER BY 
+        CASE field_type
+            WHEN 'id' THEN 0
+            WHEN 'created_at' THEN 1
+            WHEN 'updated_at' THEN 2
+            ELSE 3 + position
+        END ASC",
     )
     .bind(workspace_id)
     .fetch_all(&state.pool)
@@ -403,7 +409,6 @@ pub async fn update_system_record(
     Path((workspace_uid, record_uid, field_uid)): Path<(String, String, String)>,
     Json(payload): Json<FormValue>,
 ) -> impl IntoResponse {
-    println!("{} - {} - {}", &workspace_uid, &record_uid, &field_uid);
     let app_uid =
         match sqlx::query_scalar::<_, String>("SELECT app_id FROM workspaces WHERE unique_id = $1")
             .bind(&workspace_uid)
