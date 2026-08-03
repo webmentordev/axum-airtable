@@ -250,7 +250,7 @@ pub async fn delete_workspace(
     State(state): State<AppState>,
     Path((app_uid, workspace_uid)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    if let Err(_) = sqlx::query("SELECT id FROM members WHERE member_id = $1 AND app_id = $2")
+    if let Err(_) = sqlx::query("SELECT id FROM apps WHERE owner_id = $1 AND unique_id = $2")
         .bind(&user_id)
         .bind(&app_uid)
         .fetch_one(&state.pool)

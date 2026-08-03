@@ -1,6 +1,7 @@
 <template>
     <div class="w-full h-screen flex flex-col justify-between text-[0.820rem]">
         <AlertsSuccess v-if="message" :message="message" @close="message = ''" />
+        <AlertsError v-if="errors.message" :message="errors.message" @close="errors.message = ''" />
         <div class="flex flex-col w-full">
             <div class="bg-main px-3 py-1 flex items-center justify-between">
                 <div class="flex items-center">
